@@ -1,10 +1,11 @@
 """Active source registry. Add or replace sources here; the pipeline reads this list.
 
-URLs were verified live during PLAN v2 (see PLAN.md §4). arXiv lands in step 2.
+URLs were verified live during PLAN v2 (see PLAN.md §4).
 """
 
 from __future__ import annotations
 
+from .arxiv import ArxivSource
 from .base import Source
 from .rss import RSSSource
 
@@ -18,4 +19,7 @@ DEFAULT_SOURCES: list[Source] = [
     RSSSource("Stability AI News",    "https://stability.ai/news-updates?format=rss"),
     RSSSource("NVIDIA Blogs",         "https://blogs.nvidia.com/feed/"),
     RSSSource("BAIR",                 "https://bair.berkeley.edu/blog/feed.xml"),
+    ArxivSource("cs.AI"),
+    ArxivSource("cs.CL"),
+    ArxivSource("cs.LG"),
 ]
