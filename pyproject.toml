@@ -1,0 +1,31 @@
+[project]
+name = "ai-news-digest"
+version = "0.1.0"
+description = "Daily Korean AI news digest bot (RSS -> Claude -> Slack/Email)"
+requires-python = ">=3.11"
+dependencies = [
+    "feedparser>=6.0.10",
+    "httpx>=0.27",
+    "anthropic>=0.40",
+    "python-dateutil>=2.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-mock>=3.12",
+    "respx>=0.21",
+    "pre-commit>=3.7",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
