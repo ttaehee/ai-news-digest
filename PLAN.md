@@ -282,7 +282,7 @@ ai-news-digest/
 |---|------|-------------|-----------|-------------|
 | 0 | 뼈대 init | `git init` + `.gitignore`(.env 포함) + `pyproject.toml` + `AGENTS.md` + `CLAUDE.md`(@AGENTS.md 포인터) + `.env.example` + `.pre-commit-config.yaml` | `pre-commit run --all-files` 통과, `pytest -q` (0 tests OK) 통과 | `chore: init project skeleton` |
 | 0.5 | 원격 저장소 | `gh repo create ai-news-digest --private` + `git push -u origin main` | 푸시 직전 `.gitignore`에 `.env`·`__pycache__` 포함 / `git grep` 시크릿 없음 재확인 | (커밋 없음) |
-| 1 | 소스 플러그인 + RSS | `sources/base.py`, `sources/rss.py`, `sources/registry.py`(채택 10 소스 등록), 픽스처 기반 테스트 | `pytest tests/test_sources_rss.py` 통과 | `feat: add source plugin interface and RSS source` |
+| 1 | 소스 플러그인 + RSS + 피드 생존 하네스 | `sources/base.py`, `sources/rss.py`, `sources/registry.py`(현 단계엔 RSS 9개 등록; arXiv는 2단계), `scripts/check_feeds.py`(레지스트리 순회해 HTTP/타입/항목 수/최근 날짜/OK·FAIL 표 출력, 하나라도 FAIL이면 exit 1), `tests/test_sources_rss.py`(픽스처·모킹), `tests/test_feeds_live.py`(`@pytest.mark.network` — 기본 CI에선 제외), `tests/conftest.py` + pytest 마커 등록 | `pytest -q`(기본, network 제외) 통과 + `python scripts/check_feeds.py`로 9개 모두 OK | `feat: add source plugin interface, RSS source, and feed health-check harness` |
 | 2 | arXiv 소스 (30건 컷) | `sources/arxiv.py` + 카테고리별 상위 30건 컷 + 테스트 | `pytest tests/test_sources_arxiv.py` 통과 | `feat: add arXiv source with per-category top-30 cap` |
 | 3 | 정규화 + 시간 윈도우(26h) | `normalize.py` + 테스트 | 단위테스트 통과 | `feat: add normalization with 26h time-window filter` |
 | 4 | AI 가공 (tool-use 강제, 모킹) | `ai_processor.py` + `emit_digest` 툴 정의 + 프롬프트 + Claude 응답 모킹 테스트 (분할/재시도/폴백) | 단위테스트 통과 | `feat: add Claude aggregation via forced tool-use` |
@@ -321,6 +321,10 @@ ai-news-digest/
   하루를 통째로 건너뛴 경우의 항목 손실까지는 보호하지 못한다.** 항목 손실을 회피하려면 추후
   `state/seen.json`을 커밋·푸시하는 방식으로 확장 가능(현재 범위는 시간 윈도우만).
 - **개인정보 노출**: 프롬프트 가드 + 발송 직전 정규식 차단.
+- **Microsoft Research RSS 간헐 지연**: 1단계 라이브 검증 중 동일 URL이 ~20s timeout과 즉시 200을
+  반복하는 분 단위 지연 구간을 보이는 사례 관찰. 3회 재시도(2s/4s backoff)로 스크립트(`check_feeds.py`)는
+  안정적으로 통과하나, 동시간대에 `pytest -m network`가 MS Research에서 깨질 수 있다. 재시도는 더 늘리지
+  않고 알려진 flake로 인정. 실제 봇 동작은 소스별 격리로 흡수.
 
 ---
 

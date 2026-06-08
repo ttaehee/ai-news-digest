@@ -13,6 +13,10 @@
 - 단계별로 진행한다. 각 단계 끝에서 실제로 실행해 동작을 검증한 뒤 다음으로 넘어간다.
 - **검증 전 임의 커밋 금지.** 사용자 OK 후에만 커밋한다.
 - **한 커밋 = 한 논리 변경.** Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `ci:`, ...).
+- **커밋의 Co-Authored-By trailer는 정확히 다음 한 줄로 고정한다** (모델명·버전 표기 금지):
+  ```
+  Co-Authored-By: Claude <noreply@anthropic.com>
+  ```
 - 코드 변경은 `PLAN.md`의 단계 정의를 따른다. 단계 외 작업이 필요하면 먼저 `PLAN.md`를 갱신하고 확인받는다.
 
 ## 2. 보안 (강제)

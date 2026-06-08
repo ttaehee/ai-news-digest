@@ -28,4 +28,7 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "-ra"
+addopts = "-ra --strict-markers -m 'not network'"
+markers = [
+    "network: real network calls (deselected by default; run with `pytest -m network`)",
+]
