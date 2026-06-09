@@ -5,14 +5,17 @@
 
 ---
 
-## 1. 결론 요약 (TL;DR) — 사용자 OK 반영 v2
+## 1. 결론 요약 (TL;DR) — 사용자 OK 반영 v3
 
 - **언어/스택**: Python 3.11+. 표준 라이브러리 + 최소한의 외부 의존성.
 - **수집**: 1차 소스 9곳 + arXiv(cs.AI/CL/LG) = 총 10개. 모두 무료/공개·실제 200·파싱 확인 완료.
   공식 RSS가 없는 Anthropic/Meta AI/Mistral은 **드롭**(2차 매체로 메우지 않음).
   중복 방지는 시간 윈도우(`WINDOW_HOURS=26`)로 처리 — 26시간으로 잡아 cron 지터 ~2h 흡수.
-- **AI**: Anthropic Claude Haiku 4.5 기본. 구조화 출력은 **tool-use 강제** 방식(Anthropic API엔 `response_format` 없음).
-  필요 시 분할 호출, 비용 최소화. 품질 부족하면 추후 Sonnet 4.6 승격 검토.
+- **AI (제공자 추상화)**: `LLM_PROVIDER` 환경변수로 전환.
+  - **기본 `gemini`** — 무료 티어. 기본 모델 `gemini-2.5-flash`. 구조화 출력은 **`response_schema`** 직접 사용.
+  - **대안 `claude`** — Anthropic Claude Haiku 4.5. 구조화 출력은 **forced tool-use** (`response_format` 없음).
+  - 공통 시스템 프롬프트·검증·재시도·폴백·분할-머지 로직은 `ai_processor.py`에 그대로 유지. 제공자별
+    네이티브 호출만 `providers/{claude,gemini}.py`로 분리. 선택된 제공자 SDK만 lazy import.
 - **arXiv 입력 제어**: 카테고리당 최신 30건만 수집(피드 단계에서 컷). 토큰 폭주 방지.
 - **발송**: 끝까지 **DRY_RUN(콘솔)으로만 구현·검증**. 슬랙/메일은 Sender 인터페이스 + 모듈 골격만 만들어 두고
   실 발송은 사용자가 추후 시크릿 채워서 직접 켠다. (코드만 준비, 우선순위: 메일 → 슬랙)
@@ -79,7 +82,12 @@ ai-news-digest/
 │       │   ├── arxiv.py             # arXiv API 소스
 │       │   └── registry.py          # 활성 소스 목록 (여기만 고치면 추가/교체)
 │       ├── normalize.py             # {title, url, source, published_at, raw_text}
-│       ├── ai_processor.py          # Claude 호출 + JSON 검증/재시도/분할
+│       ├── ai_processor.py          # provider-agnostic 오케스트레이션(검증/재시도/분할/머지)
+│       ├── providers/
+│       │   ├── __init__.py          # get_provider(name) 팩토리
+│       │   ├── base.py              # LLMProvider ABC (emit_digest(items) -> dict)
+│       │   ├── gemini.py            # response_schema 직접 사용 (기본)
+│       │   └── claude.py            # forced tool-use (대안)
 │       ├── delivery/
 │       │   ├── __init__.py
 │       │   ├── base.py              # Sender 인터페이스
@@ -174,22 +182,42 @@ ai-news-digest/
 
 ---
 
-## 5. AI 처리 (Claude API)
+## 5. AI 처리 (제공자 추상화)
 
-### 호출 정책
-- 모델: `claude-haiku-4-5-20251001` (요약 작업엔 충분, 비용 ↓). 품질 부족 시 `claude-sonnet-4-6`으로 1단계 승격.
+### 제공자 선택
+- `LLM_PROVIDER` 환경변수: `gemini`(기본) | `claude`.
+- `LLM_MODEL` 환경변수로 모델 ID 오버라이드 가능. 미지정 시 제공자별 기본값.
+- 제공자별 API 키는 선택된 제공자만 필요: `GEMINI_API_KEY` 또는 `ANTHROPIC_API_KEY`.
+
+| 제공자 | 기본 모델 | 구조화 출력 방식 | 무료 여부 |
+|--------|-----------|------------------|-----------|
+| `gemini` (기본) | `gemini-2.5-flash` | `response_mime_type="application/json"` + `response_schema` | 무료 티어 |
+| `claude` | `claude-haiku-4-5-20251001` | forced tool-use (`tool_choice={"type":"tool","name":"emit_digest"}`) | 유료 |
+
+### 인터페이스
+```python
+class LLMProvider(ABC):
+    @abstractmethod
+    def emit_digest(self, items: list[RawItem]) -> dict:
+        """Return the raw structured digest dict. Caller validates downstream."""
+```
+- `ai_processor.process(items, *, provider=None, ...)`는 provider 객체를 받고 그쪽 `emit_digest`를 호출.
+- 기존 `caller` 시임은 그대로 유지(테스트용). 프로덕션에선 `caller = provider.emit_digest`.
+- 두 제공자의 SDK(`google-genai`, `anthropic`)는 각 모듈 안에서 lazy import — 선택된 쪽만 로드.
+
+### 호출 정책 (공통)
 - 입력은 정규화된 항목 리스트(`title`, `url`, `source`, `published_at`, `raw_text` 요약 1000자 컷).
 - **arXiv는 수집 단계에서 카테고리별 최신 30건 컷.** 다른 소스는 그대로 흘려보내되, 전체 항목 수가
   많아 토큰 한도가 위험하면 분할 호출.
-- **구조화 출력 강제 방식**: Anthropic API엔 `response_format`이 없으므로 두 가지 중 선택해 구현:
-  1. **tool-use 강제**(권장): 단일 도구 `emit_digest`를 정의하고 `tool_choice={"type":"tool","name":"emit_digest"}`로
-     강제 호출 → 응답이 항상 JSON 인자로 들어옴. 파싱·검증 단순.
-  2. assistant prefill: 응답을 `{`로 강제 시작하게 prefill. tool-use가 막힐 때만 폴백.
-  → 1번 채택. `response_format` 탐색에 시간 쓰지 않음.
 - 입력 토큰 한도 초과 시: 항목을 절반으로 나눠 2회 호출 → 결과 머지 후 카테고리별 상위 5 재정렬.
-- 프롬프트 캐싱 사용(시스템 프롬프트 + 카테고리/스코어링 규칙은 캐시 블록).
+- 시스템 프롬프트는 제공자 무관 동일 텍스트(공통 `SYSTEM_PROMPT`). 한국어 카테고리·중요도·3줄 요약 규칙 포함.
 
-### 기대 출력 스키마
+### 제공자별 차이 (필수)
+- **Gemini**: `client.models.generate_content(model=..., contents=user_msg, config=GenerateContentConfig(system_instruction=SYSTEM_PROMPT, response_mime_type="application/json", response_schema=GEMINI_SCHEMA))`.
+  응답 `response.text`(JSON 문자열) → `json.loads` → dict. 한국어 property 키는 검증 단계에서 확인(§11 위험).
+- **Claude**: 기존 `_call_emit_digest` 로직을 `providers/claude.py`로 이동. forced tool-use + prompt caching 그대로 유지.
+
+### 기대 출력 스키마 (공통)
 ```json
 {
   "categories": {
@@ -287,7 +315,8 @@ ai-news-digest/
 | 3 | 정규화 + 시간 윈도우(26h) | `normalize.py` + 테스트 | 단위테스트 통과 | `feat: add normalization with 26h time-window filter` |
 | 4 | AI 가공 (tool-use 강제, 모킹) | `ai_processor.py` + `emit_digest` 툴 정의 + 프롬프트 + Claude 응답 모킹 테스트 (분할/재시도/폴백) | 단위테스트 통과 | `feat: add Claude aggregation via forced tool-use` |
 | 5 | 발송 골격 + 콘솔 렌더러 | `delivery/base.py` (Sender 인터페이스), `delivery/console.py`(완전 동작), `delivery/slack.py`·`delivery/email_smtp.py`(골격 stub), `render.py`(공통 포맷터) + 콘솔/모킹 테스트 | `pytest tests/test_delivery_console.py` 통과 | `feat: add delivery interface, console renderer, and slack/email stubs` |
-| 6 | 파이프라인 + dry-run CLI | `pipeline.py`, `__main__.py`, `scripts/run_local.sh` | **실제로** `python -m ai_news_digest` 실행 → 10개 소스 수집·Claude 호출·콘솔 출력까지 동작 확인 (사용자 ANTHROPIC_API_KEY 필요) | `feat: wire end-to-end pipeline with dry-run CLI` |
+| 5.5 | LLM 제공자 추상화 | `providers/base.py`(`LLMProvider` ABC), `providers/claude.py`(기존 `_call_emit_digest` 이동), `providers/gemini.py`(`response_schema`), `providers/__init__.py`(`get_provider(name)` 팩토리) + `ai_processor.py`를 provider-agnostic으로 슬림화(`process(items, *, provider=None, caller=None, ...)`) + `.env.example`에 `LLM_PROVIDER`/`GEMINI_API_KEY`/`LLM_MODEL` 추가 + `google-genai` 의존성 추가 + provider별 단위테스트(SDK 응답 모킹) | `pytest -q` 전체 통과(기존 ai_processor 테스트 무변경 통과 포함) | `feat: abstract LLM provider behind LLM_PROVIDER (gemini default, claude alt)` |
+| 6 | 파이프라인 + dry-run CLI | `pipeline.py`, `__main__.py`, `scripts/run_local.sh` | **실제로** `python -m ai_news_digest` 실행 → 10개 소스 수집·선택 provider 호출·콘솔 출력까지 동작 확인 (기본 `LLM_PROVIDER=gemini` + `GEMINI_API_KEY` 필요; Claude로 켜려면 `LLM_PROVIDER=claude` + `ANTHROPIC_API_KEY`) | `feat: wire end-to-end pipeline with dry-run CLI` |
 | 7 | (생략) 실 발송 검증 | — | DRY_RUN 콘솔 출력으로 갈음. 슬랙/메일 실호출은 사용자가 직접 켤 때 진행. | (없음) |
 | 8 | GitHub Actions | `.github/workflows/digest.yml`(매일 UTC 00시, 기본 DRY_RUN=1), `ci.yml`(pytest + gitleaks) | `workflow_dispatch`로 수동 실행 후 성공 로그 확인 | `ci: add daily digest workflow and CI` |
 | 9 | README 마무리 | `README.md` (로컬 실행/Secrets/cron 변경/GHA 지터 안내) | 사용자 리뷰 | `docs: add README with setup and ops guide` |
@@ -299,8 +328,9 @@ ai-news-digest/
 1. 언어/스택: **Python 3.11+** ✅
 2. 소스: §4의 **확정 10개**(공식 RSS 없는 Anthropic/Meta/Mistral 드롭, blog.google AI + BAIR 추가). ✅
 3. `WINDOW_HOURS=26` ✅ (cron 지터 ~2h 흡수)
-4. Claude 모델: **Haiku 4.5** 기본. arXiv 카테고리당 30건 컷으로 입력 토큰 제한. 구조화 출력은
-   **tool-use 강제** (`response_format` 미사용). ✅
+4. AI 제공자: **`LLM_PROVIDER=gemini` 기본**(무료, `gemini-2.5-flash` + `response_schema`).
+   대안 `claude`(Haiku 4.5 + forced tool-use). arXiv 카테고리당 30건 컷으로 입력 토큰 제한.
+   provider-agnostic 오케스트레이션은 `ai_processor.py`, provider별 호출만 `providers/{gemini,claude}.py`. ✅ (v3)
 5. 발송: **DRY_RUN(콘솔)으로만** 끝까지 구현·검증. Slack/Email은 인터페이스 + 모듈 골격만.
    순서는 메일 → 슬랙으로 추후. 7단계 실 발송 검증 생략. ✅
 6. 실행 시각: KST 09시(=UTC 00시) ✅
@@ -315,7 +345,12 @@ ai-news-digest/
 
 - **RSS URL 변경**: 채택 소스 중 일부가 실제로 RSS를 닫았거나 경로가 바뀌었을 수 있음 → 1단계 끝에서 전체 200/파싱 가능 여부를 체크하고 실패 소스를 즉시 보고/교체.
 - **published_at 누락/시간대 혼재**: `python-dateutil`로 흡수, tzinfo 없으면 UTC 가정 + 로그 경고.
-- **Claude JSON 깨짐**: 재시도 1회 + 폴백(원본 링크 덤프). 파이프라인은 계속 진행.
+- **LLM JSON 깨짐**: 제공자 무관, 재시도 1회 + 폴백(원본 링크 덤프). 파이프라인은 계속 진행.
+- **Gemini 무료 티어 quota**: 일일 호출 1~2회는 무료 티어 내 안전 마진이지만, rate limit/quota 초과
+  시 명확한 에러로 폴백되도록 처리. 실패 시 `LLM_PROVIDER=claude`로 즉시 스위치 가능.
+- **Gemini `response_schema`의 한국어 property 키**: `"모델출시"` 같은 한국어 키가 정상 허용되는지
+  5.5단계 끝에서 모킹이 아닌 실호출 1회로 확인. 거부될 경우 내부 키는 영어(`releases`/`papers`/`tools`/`other`)로
+  바꾸고 발송 직전 한국어로 매핑하는 fallback 적용.
 - **토큰 비용**: 캐시 + 본문 1000자 컷 + 분할 호출 최소화. 일일 호출 1~2회로 설계.
 - **GHA cron 지연**: README에 명시. **26h 윈도우는 수십 분~약 2시간의 cron 지터를 흡수하는 정도지,
   하루를 통째로 건너뛴 경우의 항목 손실까지는 보호하지 못한다.** 항목 손실을 회피하려면 추후
@@ -333,7 +368,13 @@ ai-news-digest/
 ---
 
 ## 12. 변경 이력
-- v2 (이번 갱신):
+- v3 (이번 갱신):
+  - **LLM 제공자 추상화** 도입. 기본 `gemini`(무료), 대안 `claude`. 환경변수 `LLM_PROVIDER`로 전환.
+  - §1·§3 구조·§5 전반·§9에 5.5단계 신설·§10·§11에 위험 항목 반영.
+  - 기존 `ai_processor.py`의 검증/재시도/폴백/분할-머지·시스템 프롬프트는 그대로 유지하고, Claude 전용
+    `_call_emit_digest`만 `providers/claude.py`로 이동. Gemini는 `response_schema` 직접 사용.
+  - 6단계 검증 기본 경로를 Gemini로 변경(Claude로 켜려면 env 한 줄).
+- v2:
   - 사용자 확정 결정 반영(WINDOW_HOURS=26, arXiv 30컷, tool-use 강제, DRY_RUN-only 끝까지, gh private repo).
   - 피드 실측: Anthropic/Meta/Mistral 드롭, Stability `?format=rss` 채택, blog.google AI + BAIR 추가 → 최종 10개.
   - §11의 "자동 복구" 문구를 26h 지터 흡수 한정으로 정정.
