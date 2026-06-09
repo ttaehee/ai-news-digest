@@ -9,9 +9,10 @@
 - **2단계** — arXiv 소스 + 카테고리별 top-30 컷 (`feat: add arXiv source with per-category top-30 cap`, `4ec7438`)
 - **3단계** — 정규화 + 26h 시간 윈도우 필터 (`feat: add normalization with 26h time-window filter`, `dd26cbd`)
 - **4단계** — AI 가공: Claude tool-use 강제 + 재시도/폴백/분할-머지 (`feat: add Claude aggregation via forced tool-use`, `5f0f690`)
+- **5단계** — 발송 인터페이스 + 콘솔 렌더러(완전 동작) + Slack/Email 스캐폴드 (`feat: add delivery interface, console renderer, and slack/email stubs`, `5d3d183`)
 
 ## 다음
-**5단계** — 발송 골격: Sender 인터페이스 + 콘솔 렌더러(완전 동작) + Slack/Email 스텁. PLAN §9·§6 참고.
+**6단계** — 파이프라인 + dry-run CLI: `pipeline.py`, `__main__.py`, `scripts/run_local.sh`. 실제 `python -m ai_news_digest` 실행해 10개 소스 수집·Claude 호출·콘솔 출력까지 동작 확인(ANTHROPIC_API_KEY 필요). PLAN §9·§3 참고.
 
 ## 이어가는 법
 새 세션에서:
