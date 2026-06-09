@@ -7,9 +7,10 @@
 - **0.5** — private 원격 저장소 생성 ([ttaehee/ai-news-digest](https://github.com/ttaehee/ai-news-digest))
 - **1단계** — 소스 플러그인 + RSS + 피드 헬스체크 하네스 (`feat: add source plugin interface, RSS source, and feed health-check harness`, `30991f8`)
 - **2단계** — arXiv 소스 + 카테고리별 top-30 컷 (`feat: add arXiv source with per-category top-30 cap`, `4ec7438`)
+- **3단계** — 정규화 + 26h 시간 윈도우 필터 (`feat: add normalization with 26h time-window filter`, `dd26cbd`)
 
 ## 다음
-**3단계** — 정규화 + 시간 윈도우 26h (`src/ai_news_digest/normalize.py` + 테스트). PLAN §9 참고.
+**4단계** — AI 가공 (Claude API, tool-use 강제, 모킹 테스트). PLAN §9·§5 참고.
 
 ## 이어가는 법
 새 세션에서:
