@@ -10,9 +10,10 @@
 - **3단계** — 정규화 + 26h 시간 윈도우 필터 (`feat: add normalization with 26h time-window filter`, `dd26cbd`)
 - **4단계** — AI 가공: Claude tool-use 강제 + 재시도/폴백/분할-머지 (`feat: add Claude aggregation via forced tool-use`, `5f0f690`)
 - **5단계** — 발송 인터페이스 + 콘솔 렌더러(완전 동작) + Slack/Email 스캐폴드 (`feat: add delivery interface, console renderer, and slack/email stubs`, `5d3d183`)
+- **PLAN v3** — LLM 제공자 추상화 계획 반영 (`docs: plan LLM provider abstraction (gemini default, claude alt)`, `ae41e73`)
 
 ## 다음
-**6단계** — 파이프라인 + dry-run CLI: `pipeline.py`, `__main__.py`, `scripts/run_local.sh`. 실제 `python -m ai_news_digest` 실행해 10개 소스 수집·Claude 호출·콘솔 출력까지 동작 확인(ANTHROPIC_API_KEY 필요). PLAN §9·§3 참고.
+**5.5단계** — LLM 제공자 추상화: `providers/{base,gemini,claude}.py` + `get_provider()` 팩토리, `ai_processor.py` provider-agnostic 슬림화, `LLM_PROVIDER`/`GEMINI_API_KEY`/`LLM_MODEL` env, `google-genai` 의존성, provider별 모킹 테스트. 기본 `gemini` 무료. PLAN §9 row 5.5 · §5 참고.
 
 ## 이어가는 법
 새 세션에서:
