@@ -33,11 +33,16 @@
 - 의존성은 최소. 새 의존성 추가 시 `PLAN.md`에 이유를 적는다.
 - 다이제스트 출력은 한국어로 작성한다.
 
-## 4. Anthropic Claude API
-- 구조화 출력은 **tool-use 강제** 방식으로 한다 (`tool_choice={"type":"tool","name":"..."}`).
-  Anthropic API에는 OpenAI 류의 `response_format`이 없으므로 시도하지 않는다.
-- 기본 모델은 `claude-haiku-4-5-20251001`. 품질 부족 시 `claude-sonnet-4-6`으로 승격.
-- 시스템 프롬프트·정책은 prompt caching 블록으로 묶는다.
+## 4. LLM 제공자
+- 제공자는 환경변수 **`LLM_PROVIDER`** 로 선택. 기본 `gemini`(무료), 대안 `claude`.
+- 제공자별 SDK는 **lazy import**. 선택된 제공자만 로드한다.
+- 공통 시스템 프롬프트·검증·재시도·폴백·분할-머지는 `ai_processor.py`. 제공자별 호출은 `providers/{gemini,claude}.py`.
+- **Gemini**: `response_mime_type="application/json"` + `response_schema` 직접 사용.
+  기본 모델 `gemini-2.5-flash`. 환경변수 `GEMINI_API_KEY`.
+- **Claude (Anthropic)**: 구조화 출력은 **forced tool-use** (`tool_choice={"type":"tool","name":"..."}`).
+  Anthropic API엔 OpenAI 류 `response_format`이 없으므로 시도하지 않는다.
+  기본 모델 `claude-haiku-4-5-20251001` (품질 부족 시 `claude-sonnet-4-6`).
+  시스템 프롬프트는 prompt caching 블록으로 묶는다. 환경변수 `ANTHROPIC_API_KEY`.
 
 ## 5. 컨텍스트 파일 정책
 - 본 파일이 단일 소스. **규칙을 다른 파일에 중복 작성하지 않는다.**

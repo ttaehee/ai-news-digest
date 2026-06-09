@@ -1,26 +1,23 @@
-"""Unit tests for the AI processing stage. All Claude calls go through the
-`caller` seam; no network or SDK interaction."""
+"""Unit tests for the AI processing stage. All LLM calls go through the
+`caller` seam; no network or SDK interaction. Provider-specific tests
+live in tests/test_providers_*.py."""
 
 from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 
 from ai_news_digest.ai_processor import (
     CATEGORIES,
-    DEFAULT_MODEL,
-    EMIT_DIGEST_TOOL,
     MAX_RAW_TEXT_CHARS,
     SPLIT_THRESHOLD,
     SYSTEM_PROMPT,
     TOP_PER_CATEGORY,
     Digest,
     DigestItem,
-    _call_emit_digest,
     _fallback_digest,
     _items_to_prompt_json,
     _merge_digests,
@@ -250,59 +247,8 @@ def test_merge_propagates_fallback_flag():
     assert _merge_digests([ok, fb]).fallback is True
 
 
-# --- tool schema sanity -----------------------------------------------
-
-def test_tool_schema_lists_all_four_categories():
-    cats = EMIT_DIGEST_TOOL["input_schema"]["properties"]["categories"]
-    assert set(cats["properties"]) == set(CATEGORIES)
-    assert set(cats["required"]) == set(CATEGORIES)
-
-
-def test_tool_schema_requires_three_line_summary():
-    item_schema = EMIT_DIGEST_TOOL["input_schema"]["properties"]["categories"][
-        "properties"
-    ]["모델출시"]["items"]
-    s = item_schema["properties"]["summary_kr"]
-    assert s["minItems"] == 3 and s["maxItems"] == 3
-
+# --- system prompt ----------------------------------------------------
 
 def test_system_prompt_mentions_pii_guard():
     # Privacy rule (#8) must be present; the model is the last guard before send.
     assert "개인" in SYSTEM_PROMPT
-
-
-# --- _call_emit_digest with a fake SDK client -------------------------
-
-def _fake_tool_use(payload: dict) -> SimpleNamespace:
-    return SimpleNamespace(type="tool_use", name="emit_digest", input=payload)
-
-
-def test_call_emit_digest_invokes_client_with_forced_tool_use():
-    payload = _payload(모델출시=[_payload_item()])
-    client = MagicMock()
-    client.messages.create.return_value = SimpleNamespace(content=[_fake_tool_use(payload)])
-
-    out = _call_emit_digest(client, DEFAULT_MODEL, [_raw()])
-
-    assert out == payload
-    kwargs = client.messages.create.call_args.kwargs
-    assert kwargs["model"] == DEFAULT_MODEL
-    assert kwargs["tool_choice"] == {"type": "tool", "name": "emit_digest"}
-    assert kwargs["tools"] == [EMIT_DIGEST_TOOL]
-    # System prompt sent with prompt-cache control.
-    (sys_block,) = kwargs["system"]
-    assert sys_block["cache_control"] == {"type": "ephemeral"}
-    assert "AI 뉴스 다이제스트" in sys_block["text"]
-    # User message embeds the JSON payload.
-    user_msg = kwargs["messages"][0]
-    assert user_msg["role"] == "user"
-    assert "emit_digest" in user_msg["content"]
-
-
-def test_call_emit_digest_raises_when_no_tool_use_block():
-    client = MagicMock()
-    client.messages.create.return_value = SimpleNamespace(
-        content=[SimpleNamespace(type="text", text="hi")]
-    )
-    with pytest.raises(ValueError, match="emit_digest"):
-        _call_emit_digest(client, DEFAULT_MODEL, [_raw()])

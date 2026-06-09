@@ -1,12 +1,8 @@
 """AI processing stage (PLAN §5): dedupe, categorize, score, summarize.
 
-Calls Claude with a forced ``emit_digest`` tool — Anthropic has no
-``response_format``, so tool-use is the structured-output mechanism
-(AGENTS §4). On hard failure, falls back to a raw-link dump so the
-pipeline can still ship.
-
-The Claude call is reached through a single ``caller`` seam so tests
-never touch the SDK.
+Provider-agnostic orchestration. Validation, retry, fallback, and split-merge
+live here; the actual LLM call is delegated to an `LLMProvider` (see
+``providers/``). The ``caller`` seam stays for tests so no SDK is touched.
 """
 
 from __future__ import annotations
@@ -14,16 +10,18 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable
+from typing import TYPE_CHECKING, Callable, Iterable
 
 from .sources.base import RawItem
 
+if TYPE_CHECKING:
+    from .providers.base import LLMProvider
+
 log = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 SPLIT_THRESHOLD = 80         # > this many items triggers a halved-call
 TOP_PER_CATEGORY = 5         # cap per category in the final digest
-MAX_RAW_TEXT_CHARS = 1000    # raw_text truncation before sending to Claude
+MAX_RAW_TEXT_CHARS = 1000    # raw_text truncation before sending to the LLM
 MAX_ATTEMPTS = 2             # 1 initial + 1 retry; then fallback
 
 CATEGORIES: tuple[str, ...] = ("모델출시", "논문", "툴", "기타")
@@ -46,49 +44,6 @@ class Digest:
 
     def total_items(self) -> int:
         return sum(len(v) for v in self.categories.values())
-
-
-# --- emit_digest tool schema (forced) ------------------------------------
-
-_DIGEST_ITEM_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "title":      {"type": "string"},
-        "url":        {"type": "string"},
-        "source":     {"type": "string"},
-        "importance": {"type": "integer", "minimum": 0, "maximum": 10},
-        "summary_kr": {
-            "type": "array",
-            "items": {"type": "string"},
-            "minItems": 3,
-            "maxItems": 3,
-        },
-    },
-    "required": ["title", "url", "source", "importance", "summary_kr"],
-}
-
-EMIT_DIGEST_TOOL: dict[str, Any] = {
-    "name": "emit_digest",
-    "description": (
-        "Emit the final categorized digest. Call this exactly once. "
-        "Group similar items into the most authoritative primary source, "
-        "classify by category, score importance 0–10, and write a 3-line "
-        "Korean summary per item. Return at most 5 items per category, "
-        "ordered by descending importance."
-    ),
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "categories": {
-                "type": "object",
-                "properties": {cat: {"type": "array", "items": _DIGEST_ITEM_SCHEMA} for cat in CATEGORIES},
-                "required": list(CATEGORIES),
-            },
-            "notes": {"type": "string"},
-        },
-        "required": ["categories"],
-    },
-}
 
 
 SYSTEM_PROMPT = """\
@@ -122,23 +77,24 @@ Caller = Callable[[list[RawItem]], dict]
 def process(
     items: list[RawItem],
     *,
-    client: Any = None,
-    model: str = DEFAULT_MODEL,
+    provider: "LLMProvider | None" = None,
     split_threshold: int = SPLIT_THRESHOLD,
     caller: Caller | None = None,
 ) -> Digest:
     """Run AI processing. Returns a `Digest`.
 
-    `caller` is the seam for tests: callable(items) -> raw tool input dict.
-    Production wraps a Claude call via `client` (defaults to fresh
-    `anthropic.Anthropic()`).
+    `caller` is the seam for tests: callable(items) -> raw tool/JSON dict.
+    In production, `provider.emit_digest` is used; if no provider is passed,
+    `providers.get_provider()` selects the default (gemini).
     """
     if not items:
         return Digest(categories={c: () for c in CATEGORIES})
 
     if caller is None:
-        client = client or _default_client()
-        caller = lambda its: _call_emit_digest(client, model, its)
+        if provider is None:
+            from .providers import get_provider
+            provider = get_provider()
+        caller = provider.emit_digest
 
     if len(items) <= split_threshold:
         return _attempt_with_retry(items, caller)
@@ -163,42 +119,6 @@ def _attempt_with_retry(items: list[RawItem], caller: Caller) -> Digest:
             last_exc = e
     log.error("ai_processor exhausted attempts (last error: %s); falling back", last_exc)
     return _fallback_digest(items)
-
-
-# --- Claude call (production path) ---------------------------------------
-
-def _default_client() -> Any:
-    from anthropic import Anthropic
-    return Anthropic()
-
-
-def _call_emit_digest(client: Any, model: str, items: list[RawItem]) -> dict:
-    """One Claude call with forced emit_digest. Returns the raw tool input dict.
-
-    Raises ValueError if the model failed to emit a tool_use block we recognise.
-    """
-    user_msg = (
-        "아래는 정규화된 AI 뉴스 항목 목록(JSON)이다. emit_digest 도구를 호출해 "
-        "다이제스트를 반환하라.\n\n" + _items_to_prompt_json(items)
-    )
-    resp = client.messages.create(
-        model=model,
-        max_tokens=4096,
-        system=[
-            {
-                "type": "text",
-                "text": SYSTEM_PROMPT,
-                "cache_control": {"type": "ephemeral"},
-            }
-        ],
-        tools=[EMIT_DIGEST_TOOL],
-        tool_choice={"type": "tool", "name": "emit_digest"},
-        messages=[{"role": "user", "content": user_msg}],
-    )
-    for block in resp.content:
-        if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == "emit_digest":
-            return block.input  # SDK returns a dict
-    raise ValueError("model did not emit an emit_digest tool_use block")
 
 
 # --- input preparation ---------------------------------------------------
