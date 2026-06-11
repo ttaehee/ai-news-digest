@@ -13,6 +13,7 @@ import pytest
 from ai_news_digest.ai_processor import (
     CATEGORIES,
     MAX_RAW_TEXT_CHARS,
+    RETRY_BACKOFF_S,
     SPLIT_THRESHOLD,
     SYSTEM_PROMPT,
     TOP_PER_CATEGORY,
@@ -27,6 +28,12 @@ from ai_news_digest.ai_processor import (
     process,
 )
 from ai_news_digest.sources.base import RawItem
+
+
+@pytest.fixture(autouse=True)
+def _mock_retry_sleep(monkeypatch):
+    """Tests should never actually wait for the AI-call retry backoff."""
+    monkeypatch.setattr("ai_news_digest.ai_processor.time.sleep", lambda _: None)
 
 
 NOW = datetime(2026, 6, 9, 12, 0, 0, tzinfo=timezone.utc)
@@ -199,6 +206,31 @@ def test_fallback_digest_uses_url_when_title_missing():
     d = _fallback_digest([item])
     assert d.fallback is True
     assert d.categories["기타"][0].title == "https://e/x"
+
+
+def test_attempt_sleeps_with_backoff_between_failed_and_next_attempt(monkeypatch):
+    sleeps: list[float] = []
+    monkeypatch.setattr(
+        "ai_news_digest.ai_processor.time.sleep",
+        lambda s: sleeps.append(s),
+    )
+    caller = MagicMock(
+        side_effect=[ValueError("first"), _payload(모델출시=[_payload_item()])]
+    )
+    process([_raw()], caller=caller)
+    # Exactly one sleep, between attempt 1 (failed) and attempt 2 (success).
+    assert sleeps == [RETRY_BACKOFF_S]
+
+
+def test_no_sleep_when_first_attempt_succeeds(monkeypatch):
+    sleeps: list[float] = []
+    monkeypatch.setattr(
+        "ai_news_digest.ai_processor.time.sleep",
+        lambda s: sleeps.append(s),
+    )
+    caller = MagicMock(return_value=_payload(모델출시=[_payload_item()]))
+    process([_raw()], caller=caller)
+    assert sleeps == []
 
 
 # --- split + merge ----------------------------------------------------

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable, Iterable
 
@@ -23,6 +24,7 @@ SPLIT_THRESHOLD = 80         # > this many items triggers a halved-call
 TOP_PER_CATEGORY = 5         # cap per category in the final digest
 MAX_RAW_TEXT_CHARS = 1000    # raw_text truncation before sending to the LLM
 MAX_ATTEMPTS = 2             # 1 initial + 1 retry; then fallback
+RETRY_BACKOFF_S = 10.0       # wait before retrying — absorbs transient LLM 503s
 
 CATEGORIES: tuple[str, ...] = ("모델출시", "논문", "툴", "기타")
 
@@ -117,6 +119,9 @@ def _attempt_with_retry(items: list[RawItem], caller: Caller) -> Digest:
         except Exception as e:
             log.warning("ai_processor attempt %d failed: %s", attempt, e)
             last_exc = e
+        if attempt < MAX_ATTEMPTS:
+            log.info("ai_processor sleeping %.1fs before retry", RETRY_BACKOFF_S)
+            time.sleep(RETRY_BACKOFF_S)
     log.error("ai_processor exhausted attempts (last error: %s); falling back", last_exc)
     return _fallback_digest(items)
 
