@@ -15,9 +15,10 @@
 - **6단계 fix** — 분할 호출에서 한쪽만 폴백일 때 진짜 요약이 살아남으면 폴백 배너 안 띄우게 머지 로직 정정 (`fix: clear merge fallback flag when fallback items don't survive top-5`, `8d2d40d`)
 - **6단계** — 파이프라인 + dry-run CLI: `pipeline.py`/`__main__.py`/`config.py`/`scripts/run_local.sh` + 실호출 E2E 검증 통과 (`feat: wire end-to-end pipeline with dry-run CLI`, `859a829`)
 - **8단계** — GitHub Actions: `digest.yml`(매일 UTC 00시 cron + `workflow_dispatch`, 기본 `DRY_RUN=true`), `ci.yml`(pytest + gitleaks). workflow_dispatch 실행 1회 통과: 12 소스 / 2167 raw / 26h 윈도우 99 / 49+50 분할 / 양쪽 Gemini 성공 / 12개 항목 진짜 요약 / fallback=False / 총 205s (`ci: add daily digest workflow and CI`, `d84af9c`). (7단계는 PLAN §9에서 DRY_RUN으로 갈음하기로 정해 스킵.)
+- **9단계** — README: 동작 방식·로컬 실행·GHA secrets·cron 변경법(UTC + 지터 안내)·환경변수·현재 한계 (`docs: add README with setup and ops guide`, `e4c8ff2`)
 
 ## 다음
-**9단계** — README 마무리: 로컬 실행법, GitHub Secrets 설정법, cron 변경법(UTC 기준 + 정시 보장 X 안내). PLAN §9 row 9 참고.
+**본 라인업 완료.** 아래 "다음에 개선" 항목 중 우선순위 매기는 게 다음 결정 포인트.
 
 ## 다음에 개선 (작은 후속 작업, 본 라인업과 별개)
 - **AI provider 재시도 backoff** — 현재 `_attempt_with_retry`가 즉시 재시도라 Gemini 503 같은 transient 부하에 약함. 6단계 E2E에서 한 절반이 5초 만에 두 번 503 받고 폴백으로 떨어진 사례 관찰. 짧은 backoff(예: 10s) 한 번 추가 검토.
