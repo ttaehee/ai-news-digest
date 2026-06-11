@@ -205,18 +205,26 @@ def _fallback_digest(items: list[RawItem]) -> Digest:
 
 
 def _merge_digests(digests: list[Digest]) -> Digest:
-    """Combine split-call results: union per category, dedup by URL, top-5."""
+    """Combine split-call results: union per category, dedup by URL, top-5.
+
+    ``fallback`` is recomputed from the *output*. It stays True only when a
+    raw-dump item actually survives the top-5 sort; if real items out-rank
+    every importance-0 fallback entry the merged digest is fully real and
+    the warning banner is suppressed. Fallback-half notes are likewise
+    dropped when their items don't surface, so a successful half doesn't
+    inherit the other half's "폴백" message.
+    """
     combined: dict[str, list[DigestItem]] = {c: [] for c in CATEGORIES}
-    notes_parts: list[str] = []
-    fallback_any = False
+    fallback_items: set[DigestItem] = set()
     for d in digests:
         for c in CATEGORIES:
-            combined[c].extend(d.categories.get(c, ()))
-        if d.notes:
-            notes_parts.append(d.notes)
-        fallback_any = fallback_any or d.fallback
+            items_in_cat = d.categories.get(c, ())
+            combined[c].extend(items_in_cat)
+            if d.fallback:
+                fallback_items.update(items_in_cat)
 
     final: dict[str, tuple[DigestItem, ...]] = {}
+    output_has_fallback = False
     for c in CATEGORIES:
         seen: set[str] = set()
         unique: list[DigestItem] = []
@@ -225,11 +233,22 @@ def _merge_digests(digests: list[Digest]) -> Digest:
                 continue
             seen.add(item.url)
             unique.append(item)
+            if item in fallback_items:
+                output_has_fallback = True
             if len(unique) >= TOP_PER_CATEGORY:
                 break
         final[c] = tuple(unique)
+
+    notes_parts: list[str] = []
+    for d in digests:
+        if not d.notes:
+            continue
+        if d.fallback and not output_has_fallback:
+            continue
+        notes_parts.append(d.notes)
+
     return Digest(
         categories=final,
         notes=" ".join(notes_parts).strip(),
-        fallback=fallback_any,
+        fallback=output_has_fallback,
     )

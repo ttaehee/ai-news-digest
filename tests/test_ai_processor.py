@@ -241,10 +241,62 @@ def test_merge_digests_caps_each_category_to_top_per_category():
     assert len(merged.categories["논문"]) == TOP_PER_CATEGORY
 
 
-def test_merge_propagates_fallback_flag():
-    fb = _fallback_digest([_raw()])
-    ok = _validate_payload(_payload(모델출시=[_payload_item()]))
-    assert _merge_digests([ok, fb]).fallback is True
+def test_merge_clears_fallback_flag_when_real_items_outsort_dump():
+    # Real items in 기타 (importance 6..10) push the fallback's importance-0
+    # entries out of the top-5; merged digest is fully real.
+    real = _validate_payload(_payload(
+        기타=[_payload_item(url=f"https://e/r{i}", importance=10 - i) for i in range(5)],
+    ))
+    fb = _fallback_digest([_raw(url="https://e/fb1"), _raw(url="https://e/fb2")])
+    merged = _merge_digests([real, fb])
+    assert merged.fallback is False
+    # fallback's "원본 링크 덤프(폴백)" note dropped because its items didn't surface
+    assert merged.notes == ""
+    urls = {it.url for it in merged.categories["기타"]}
+    assert urls == {f"https://e/r{i}" for i in range(5)}
+
+
+def test_merge_keeps_fallback_flag_when_dump_items_survive():
+    # Real digest has nothing in 기타, so fallback dump items occupy it
+    # and the warning + note must be preserved.
+    real = _validate_payload(_payload(모델출시=[_payload_item()]))
+    fb = _fallback_digest([_raw(url="https://e/fb")])
+    merged = _merge_digests([real, fb])
+    assert merged.fallback is True
+    assert len(merged.categories["기타"]) == 1
+    assert merged.notes == "원본 링크 덤프(폴백)"
+
+
+def test_merge_two_fallback_digests_keeps_flag():
+    a = _fallback_digest([_raw(url="https://e/a")])
+    b = _fallback_digest([_raw(url="https://e/b")])
+    assert _merge_digests([a, b]).fallback is True
+
+
+def test_merge_keeps_real_notes_when_fallback_note_dropped():
+    real = Digest(
+        categories={
+            "모델출시": (),
+            "논문": (),
+            "툴": (),
+            "기타": tuple(
+                DigestItem(
+                    title=f"r{i}",
+                    url=f"https://e/r{i}",
+                    source="S",
+                    importance=10 - i,
+                    summary_kr=("a", "b", "c"),
+                )
+                for i in range(5)
+            ),
+        },
+        notes="real model note",
+        fallback=False,
+    )
+    fb = _fallback_digest([_raw(url="https://e/fb")])
+    merged = _merge_digests([real, fb])
+    assert merged.fallback is False
+    assert merged.notes == "real model note"
 
 
 # --- system prompt ----------------------------------------------------
