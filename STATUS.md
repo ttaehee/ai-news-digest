@@ -16,12 +16,12 @@
 - **6단계** — 파이프라인 + dry-run CLI: `pipeline.py`/`__main__.py`/`config.py`/`scripts/run_local.sh` + 실호출 E2E 검증 통과 (`feat: wire end-to-end pipeline with dry-run CLI`, `859a829`)
 - **8단계** — GitHub Actions: `digest.yml`(매일 UTC 00시 cron + `workflow_dispatch`, 기본 `DRY_RUN=true`), `ci.yml`(pytest + gitleaks). workflow_dispatch 실행 1회 통과: 12 소스 / 2167 raw / 26h 윈도우 99 / 49+50 분할 / 양쪽 Gemini 성공 / 12개 항목 진짜 요약 / fallback=False / 총 205s (`ci: add daily digest workflow and CI`, `d84af9c`). (7단계는 PLAN §9에서 DRY_RUN으로 갈음하기로 정해 스킵.)
 - **9단계** — README: 동작 방식·로컬 실행·GHA secrets·cron 변경법(UTC + 지터 안내)·환경변수·현재 한계 (`docs: add README with setup and ops guide`, `e4c8ff2`)
+- **개선#1 (AI 재시도 backoff)** — `_attempt_with_retry`에 10초 sleep 삽입. 테스트는 autouse fixture로 `time.sleep` 모킹 (`feat: back off 10s between AI retry attempts`, `af0eaa8`)
 
 ## 다음
 **본 라인업 완료.** 아래 "다음에 개선" 항목 중 우선순위 매기는 게 다음 결정 포인트.
 
 ## 다음에 개선 (작은 후속 작업, 본 라인업과 별개)
-- **AI provider 재시도 backoff** — 현재 `_attempt_with_retry`가 즉시 재시도라 Gemini 503 같은 transient 부하에 약함. 6단계 E2E에서 한 절반이 5초 만에 두 번 503 받고 폴백으로 떨어진 사례 관찰. 짧은 backoff(예: 10s) 한 번 추가 검토.
 - **Gemini 호출 latency** — gemini-2.5-flash thinking 활성화로 1회 호출 ~80~170초. `LLM_MODEL=gemini-2.5-flash-lite`로 내리거나, thinking budget을 낮추는 옵션 추가 검토.
 - **GHA Node.js 20 deprecation** — 8단계 실행 로그 끝 warning: `actions/checkout@v4`·`actions/setup-python@v5` 내부 Node 20. GHA가 2026-06-16부터 Node 24 강제 전환. 해당 액션 v5+ stable이 나오면 갈아끼우거나 `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`로 opt-in 검토.
 
