@@ -18,6 +18,7 @@
 - **9단계** — README: 동작 방식·로컬 실행·GHA secrets·cron 변경법(UTC + 지터 안내)·환경변수·현재 한계 (`docs: add README with setup and ops guide`, `e4c8ff2`)
 - **개선#1 (AI 재시도 backoff)** — `_attempt_with_retry`에 10초 sleep 삽입. 테스트는 autouse fixture로 `time.sleep` 모킹 (`feat: back off 10s between AI retry attempts`, `af0eaa8`)
 - **개선#2 (GHA Node 24)** — `actions/checkout@v4`→@v6, `actions/setup-python@v5`→@v6로 두 워크플로 모두 업데이트. 2026-06-16 강제 전환 전 마이그레이션 완료 (`ci: bump actions/checkout to v6 and actions/setup-python to v6`, `266177e`)
+- **fix (digest.yml DRY_RUN)** — schedule 트리거가 `null == false` loose equality 때문에 `DRY_RUN=False`로 떨어지던 expression을 `github.event_name == 'workflow_dispatch'` 가드로 수정. workflow_dispatch 1회 통과: DRY_RUN=True, 양쪽 Gemini 성공, fallback=False, 6개 항목 진짜 한국어 요약, 173s (`fix: gate digest DRY_RUN expression on workflow_dispatch event`, `8b4240f`)
 
 ## 다음
 **본 라인업 완료.** 아래 "다음에 개선" 항목 중 우선순위 매기는 게 다음 결정 포인트.
