@@ -44,6 +44,9 @@ jobs:
           MAIL_TO: ${{ secrets.MAIL_TO }}
           WINDOW_HOURS: "26"
           # workflow_dispatch lets a human toggle dry_run; schedule always dry-runs.
-          DRY_RUN: ${{ inputs.dry_run == false && 'false' || 'true' }}
+          # The event_name guard matters because GitHub expressions evaluate
+          # `null == false` as true (loose equality), which would otherwise let
+          # the schedule trigger fall through to 'false'.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == false && 'false' || 'true' }}
           DELIVERY: ""
         run: python -m ai_news_digest
