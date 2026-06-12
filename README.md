@@ -114,8 +114,8 @@ on:
   `send()` 호출 시 `NotImplementedError`. 활성화는 후속 작업.
 - **Gemini latency**: 기본 모델 `gemini-2.5-flash`는 thinking 활성화로 한 호출에 1~3분 걸린다.
   더 빨리 돌리려면 `LLM_MODEL=gemini-2.5-flash-lite`.
-- **Gemini 503 부하 시**: 즉시 재시도뿐이라 둘 다 같은 부하 구간에 잡히면 한 절반이 폴백으로 떨어질 수 있다.
-  짧은 backoff 도입은 후속 작업.
+- **Gemini 503 부하 시**: 재시도 사이에 10초 backoff를 둬서 짧은 503 스파이크는 흡수하지만,
+  과부하가 길게 이어지면 두 시도 모두 실패해 폴백으로 떨어질 수 있다(실제 관찰됨).
 - **Microsoft Research RSS**: 분 단위로 응답이 느려지는 구간이 있음. 3회 재시도로 보통 흡수되지만
   `pytest -m network`에선 가끔 깨지는 알려진 flake.
 
