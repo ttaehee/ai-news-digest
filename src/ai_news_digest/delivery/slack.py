@@ -1,18 +1,19 @@
-"""Slack sender — **scaffold only**.
-
-The class wiring, config validation, and body rendering are in place so the
-pipeline can pick this sender up when ``DELIVERY=slack``. The actual HTTP
-POST to the webhook is deliberately deferred per PLAN §9 row 5
-("실제 HTTP 호출은 추후 단계에서 활성화"); ``send()`` raises until then.
-"""
+"""Slack sender — POSTs the rendered digest to an Incoming Webhook."""
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
+
+import httpx
 
 from ..ai_processor import Digest
 from ..render import render_text
 from .base import Sender
+
+log = logging.getLogger(__name__)
+
+_TIMEOUT_S = 10.0
 
 
 class SlackSender(Sender):
@@ -28,12 +29,14 @@ class SlackSender(Sender):
         run_at: datetime | None = None,
         failed_sources: list[str] | None = None,
     ) -> None:
-        # The body we *would* send. Built now so wiring later is a one-line
-        # change (post a Block Kit message built around this text).
-        _body = render_text(digest, run_at=run_at, failed_sources=failed_sources)
-        del _body  # not used yet — silences linters
-        raise NotImplementedError(
-            "SlackSender is scaffolded but not wired. Keep DRY_RUN=1 (default) "
-            "to use ConsoleSender; activate this sender in a later step when "
-            "the SLACK_WEBHOOK_URL is configured."
-        )
+        body = render_text(digest, run_at=run_at, failed_sources=failed_sources)
+        try:
+            resp = httpx.post(
+                self.webhook_url,
+                json={"text": body},
+                timeout=_TIMEOUT_S,
+            )
+            resp.raise_for_status()
+        except httpx.HTTPError as e:
+            log.error("Slack POST failed: %s: %s", type(e).__name__, e)
+            raise

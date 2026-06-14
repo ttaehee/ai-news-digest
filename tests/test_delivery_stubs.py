@@ -1,8 +1,9 @@
-"""Tests for the Slack and Email sender scaffolds.
+"""Tests for the Email sender scaffold.
 
-These tests pin the contract that the senders refuse to construct with
-incomplete config and refuse to send until the wiring step turns on the
-real HTTP/SMTP calls (PLAN §9 row 5).
+SlackSender was promoted to a real implementation; its tests live in
+tests/test_delivery_slack.py. EmailSender remains a scaffold per
+PLAN §9 row 5 — these tests pin the construction-time config validation
+and the explicit "not wired yet" send() refusal.
 """
 
 from __future__ import annotations
@@ -11,33 +12,10 @@ import pytest
 
 from ai_news_digest.ai_processor import CATEGORIES, Digest
 from ai_news_digest.delivery.email_smtp import EmailSender, SMTPConfig
-from ai_news_digest.delivery.slack import SlackSender
 
 
 def _empty_digest() -> Digest:
     return Digest(categories={c: () for c in CATEGORIES})
-
-
-# --- Slack ---------------------------------------------------------------
-
-
-def test_slack_sender_requires_webhook_url():
-    with pytest.raises(ValueError, match="webhook"):
-        SlackSender("")
-
-
-def test_slack_sender_stores_webhook_url():
-    sender = SlackSender("https://hooks.example.com/abc")
-    assert sender.webhook_url == "https://hooks.example.com/abc"
-
-
-def test_slack_sender_send_raises_until_wired():
-    sender = SlackSender("https://hooks.example.com/abc")
-    with pytest.raises(NotImplementedError, match="scaffolded"):
-        sender.send(_empty_digest())
-
-
-# --- Email ---------------------------------------------------------------
 
 
 def _valid_smtp_config(**overrides) -> SMTPConfig:
