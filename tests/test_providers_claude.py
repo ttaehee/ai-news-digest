@@ -30,7 +30,7 @@ def _payload_item(url="https://e/a", importance=5) -> dict:
         "url": url,
         "source": "Src",
         "importance": importance,
-        "summary_kr": ["a", "b", "c"],
+        "summary_kr": "summary line",
     }
 
 
@@ -53,12 +53,11 @@ def test_tool_schema_lists_all_four_categories():
     assert set(cats["required"]) == set(CATEGORIES)
 
 
-def test_tool_schema_requires_three_line_summary():
+def test_tool_schema_requires_string_summary():
     item_schema = EMIT_DIGEST_TOOL["input_schema"]["properties"]["categories"][
         "properties"
     ]["모델출시"]["items"]
-    s = item_schema["properties"]["summary_kr"]
-    assert s["minItems"] == 3 and s["maxItems"] == 3
+    assert item_schema["properties"]["summary_kr"] == {"type": "string"}
 
 
 # --- emit_digest --------------------------------------------------------

@@ -24,7 +24,7 @@ _DIGEST_ITEM_SCHEMA: dict[str, Any] = {
         "url":        {"type": "string"},
         "source":     {"type": "string"},
         "importance": {"type": "integer"},
-        "summary_kr": {"type": "array", "items": {"type": "string"}},
+        "summary_kr": {"type": "string"},
     },
     "required": ["title", "url", "source", "importance", "summary_kr"],
 }

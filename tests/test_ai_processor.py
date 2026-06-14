@@ -48,14 +48,14 @@ def _payload_item(
     url="https://example.com/a",
     source="Src",
     importance=5,
-    summary=("ko1", "ko2", "ko3"),
+    summary="ko summary",
 ) -> dict:
     return {
         "title": title,
         "url": url,
         "source": source,
         "importance": importance,
-        "summary_kr": list(summary),
+        "summary_kr": summary,
     }
 
 
@@ -104,7 +104,7 @@ def test_validate_payload_builds_digest():
     d = _validate_payload(payload)
     assert isinstance(d, Digest)
     assert len(d.categories["모델출시"]) == 1
-    assert d.categories["모델출시"][0].summary_kr == ("ko1", "ko2", "ko3")
+    assert d.categories["모델출시"][0].summary_kr == "ko summary"
 
 
 def test_validate_payload_trims_to_top_per_category_by_importance():
@@ -136,9 +136,9 @@ def test_parse_item_raises_on_missing_field():
         _parse_item(item)
 
 
-def test_parse_item_raises_when_summary_not_three_lines():
-    item = _payload_item(summary=("only", "two"))
-    with pytest.raises(ValueError, match="3"):
+def test_parse_item_raises_when_summary_not_string():
+    item = _payload_item(summary=["was", "a", "list"])
+    with pytest.raises(ValueError, match="string"):
         _parse_item(item)
 
 
@@ -198,7 +198,7 @@ def test_process_falls_back_after_two_failures():
     assert len(d.categories["기타"]) == 2
     assert {it.url for it in d.categories["기타"]} == {"https://e/1", "https://e/2"}
     assert all(it.importance == 0 for it in d.categories["기타"])
-    assert all(it.summary_kr == ("", "", "") for it in d.categories["기타"])
+    assert all(it.summary_kr == "" for it in d.categories["기타"])
 
 
 def test_fallback_digest_uses_url_when_title_missing():
@@ -320,7 +320,7 @@ def test_merge_keeps_real_notes_when_fallback_note_dropped():
                     url=f"https://e/r{i}",
                     source="S",
                     importance=10 - i,
-                    summary_kr=("a", "b", "c"),
+                    summary_kr="real summary",
                 )
                 for i in range(5)
             ),

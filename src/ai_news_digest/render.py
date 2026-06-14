@@ -1,11 +1,11 @@
-"""Plain-text renderer for a `Digest`. Shared by ConsoleSender and reusable
-as a base for Slack/Email body building.
+"""Plain-text renderer for a `Digest`. Shared by ConsoleSender and SlackSender.
 
-Output format (PLAN §6):
+Output format:
 
 * Header: ``AI 뉴스 다이제스트 — YYYY-MM-DD (KST)``
-* Per non-empty category: section heading, then for each item:
-  ``- 제목 (출처) · URL`` followed by up to three indented summary lines.
+* Per non-empty category: section heading, then for each item one line:
+  ``- 제목 — 요약 (출처) · URL`` (when summary present)
+  ``- 제목 (출처) · URL`` (when summary empty, e.g. fallback dump)
 * Optional notes line.
 * Optional footer ``(일부 소스 실패: …)``.
 """
@@ -46,10 +46,10 @@ def render_text(
         any_items = True
         lines.append(f"# {cat}")
         for it in items:
-            lines.append(f"- {it.title} ({it.source}) · {it.url}")
-            for s in it.summary_kr:
-                if s:
-                    lines.append(f"  · {s}")
+            if it.summary_kr:
+                lines.append(f"- {it.title} — {it.summary_kr} ({it.source}) · {it.url}")
+            else:
+                lines.append(f"- {it.title} ({it.source}) · {it.url}")
         lines.append("")
 
     if not any_items:

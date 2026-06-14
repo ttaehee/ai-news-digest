@@ -35,7 +35,7 @@ class DigestItem:
     url: str
     source: str
     importance: int                # 0–10
-    summary_kr: tuple[str, str, str]  # exactly 3 lines
+    summary_kr: str                # single concise sentence (may be "" in fallback)
 
 
 @dataclass(frozen=True)
@@ -65,7 +65,9 @@ SYSTEM_PROMPT = """\
    ② 출처 신뢰도(1차 소스 우선)
    ③ AI 전반 관련성
    화제성/신규성은 동점일 때만 보조 지표로 사용.
-6. summary_kr은 정확히 3줄. 1줄=요점, 2줄=배경 또는 메커니즘, 3줄=의의 또는 영향.
+6. summary_kr은 짧은 한 줄 문자열. 핵심 사실 한 문장으로 끝낸다.
+   군더더기·평가어 금지(예: '기대된다', '중요한 이정표', '주목할 만하다',
+   '~할 것입니다', '~할 수 있다'). 가능하면 한국어 120자 이내.
 7. 각 카테고리에서 importance 내림차순으로 정렬해 상위 3개만 남긴다.
 8. 본문에 개인 이메일/전화번호/주소 등 개인정보가 보이면 요약에 절대 포함하지 않는다.
 9. 한국어로 작성하되 모델명·제품명·고유명사는 원어 그대로 둔다(예: GPT-5, Gemini 2.5, vLLM).
@@ -178,15 +180,15 @@ def _parse_item(d: dict) -> DigestItem:
         if k not in d:
             raise ValueError(f"item missing required field `{k}`")
     summary = d["summary_kr"]
-    if not isinstance(summary, list) or len(summary) != 3:
-        raise ValueError("summary_kr must be a list of exactly 3 strings")
+    if not isinstance(summary, str):
+        raise ValueError("summary_kr must be a string")
     importance = int(d["importance"])
     return DigestItem(
         title=str(d["title"]).strip(),
         url=str(d["url"]).strip(),
         source=str(d["source"]).strip(),
         importance=max(0, min(10, importance)),
-        summary_kr=tuple(str(s).strip() for s in summary),
+        summary_kr=summary.strip(),
     )
 
 
@@ -200,7 +202,7 @@ def _fallback_digest(items: list[RawItem]) -> Digest:
             url=it.url,
             source=it.source,
             importance=0,
-            summary_kr=("", "", ""),
+            summary_kr="",
         )
         for it in items
     )

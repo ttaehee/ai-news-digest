@@ -21,7 +21,7 @@ def _item(
     url="https://e/x",
     source="OpenAI Blog",
     importance=9,
-    summary=("요점", "배경", "의의"),
+    summary="요약 한 줄",
 ) -> DigestItem:
     return DigestItem(
         title=title,
@@ -75,30 +75,22 @@ def test_includes_only_nonempty_categories():
     assert "# 기타" not in text
 
 
-def test_item_line_includes_title_source_and_url():
+def test_item_line_inlines_summary_between_title_and_source():
     text = render_text(
-        _digest(cats={"모델출시": (_item(title="Foo", source="OpenAI Blog", url="https://e/foo"),)}),
+        _digest(cats={"모델출시": (_item(title="Foo", summary="간결 한 줄", source="OpenAI Blog", url="https://e/foo"),)}),
         run_at=RUN_AT,
     )
-    assert "- Foo (OpenAI Blog) · https://e/foo" in text
+    assert "- Foo — 간결 한 줄 (OpenAI Blog) · https://e/foo" in text
 
 
-def test_summary_lines_indented_and_dotted():
+def test_empty_summary_omits_em_dash_segment():
     text = render_text(
-        _digest(cats={"논문": (_item(summary=("first", "second", "third")),)}),
+        _digest(cats={"논문": (_item(title="bare", summary=""),)}),
         run_at=RUN_AT,
     )
-    assert "  · first" in text
-    assert "  · second" in text
-    assert "  · third" in text
-
-
-def test_empty_summary_lines_skipped():
-    item = _item(summary=("only line", "", ""))
-    text = render_text(_digest(cats={"논문": (item,)}), run_at=RUN_AT)
-    assert "  · only line" in text
-    # exactly one summary bullet, not three
-    assert text.count("  · ") == 1
+    # When summary is empty (e.g. fallback dump), line collapses to title+source+url only.
+    assert "- bare (OpenAI Blog) · https://e/x" in text
+    assert "bare —" not in text  # no orphan em-dash
 
 
 def test_fallback_notice_when_fallback_flag_set():
@@ -191,7 +183,7 @@ def test_console_sender_forwards_failed_sources():
 def test_console_sender_renders_fallback_digest():
     buf = io.StringIO()
     fb = _digest(
-        cats={"기타": (_item(title="raw1", summary=("", "", "")),)},
+        cats={"기타": (_item(title="raw1", summary=""),)},
         notes="원본 링크 덤프(폴백)",
         fallback=True,
     )

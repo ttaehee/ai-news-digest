@@ -37,7 +37,7 @@ def _payload_item(url="https://e/a", importance=5) -> dict:
         "url": url,
         "source": "Src",
         "importance": importance,
-        "summary_kr": ["a", "b", "c"],
+        "summary_kr": "summary line",
     }
 
 

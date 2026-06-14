@@ -23,7 +23,7 @@ def _item(title="Foo released", url="https://e/foo", source="OpenAI Blog") -> Di
         url=url,
         source=source,
         importance=9,
-        summary_kr=("요점", "배경", "의의"),
+        summary_kr="간결 한 줄",
     )
 
 

@@ -71,7 +71,7 @@ def test_collects_from_all_sources_and_passes_to_ai():
                         "url": "https://e/a1",
                         "source": "Src",
                         "importance": 8,
-                        "summary_kr": ["요점", "배경", "의의"],
+                        "summary_kr": "간결 한 줄",
                     }
                 ],
                 "논문": [], "툴": [], "기타": [],

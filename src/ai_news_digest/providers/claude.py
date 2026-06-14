@@ -22,12 +22,7 @@ _DIGEST_ITEM_SCHEMA: dict[str, Any] = {
         "url":        {"type": "string"},
         "source":     {"type": "string"},
         "importance": {"type": "integer", "minimum": 0, "maximum": 10},
-        "summary_kr": {
-            "type": "array",
-            "items": {"type": "string"},
-            "minItems": 3,
-            "maxItems": 3,
-        },
+        "summary_kr": {"type": "string"},
     },
     "required": ["title", "url", "source", "importance", "summary_kr"],
 }
@@ -37,8 +32,8 @@ EMIT_DIGEST_TOOL: dict[str, Any] = {
     "description": (
         "Emit the final categorized digest. Call this exactly once. "
         "Group similar items into the most authoritative primary source, "
-        "classify by category, score importance 0–10, and write a 3-line "
-        "Korean summary per item. Return at most 3 items per category, "
+        "classify by category, score importance 0–10, and write a single "
+        "concise Korean summary line per item. Return at most 3 items per category, "
         "ordered by descending importance."
     ),
     "input_schema": {
