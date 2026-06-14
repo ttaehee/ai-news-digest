@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from .arxiv import ArxivSource
 from .base import Source
+from .hn import HnSource
 from .rss import RSSSource
 
 DEFAULT_SOURCES: list[Source] = [
@@ -22,4 +23,5 @@ DEFAULT_SOURCES: list[Source] = [
     ArxivSource("cs.AI"),
     ArxivSource("cs.CL"),
     ArxivSource("cs.LG"),
+    HnSource(),
 ]
