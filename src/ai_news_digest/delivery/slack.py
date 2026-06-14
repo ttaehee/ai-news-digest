@@ -20,6 +20,13 @@ log = logging.getLogger(__name__)
 
 _TIMEOUT_S = 10.0
 _KST = timezone(timedelta(hours=9))
+_BULLET = "•"
+_CATEGORY_EMOJI: dict[str, str] = {
+    "모델출시": "🌵",
+    "논문":     "📖",
+    "툴":       "🍄‍🟫",
+    "기타":     "🌿",
+}
 
 
 def _render_slack(
@@ -50,13 +57,14 @@ def _render_slack(
         if not items:
             continue
         any_items = True
-        parts.append(f"*{cat}*")
+        emoji = _CATEGORY_EMOJI.get(cat, "")
+        parts.append(f"{emoji} *{cat}*" if emoji else f"*{cat}*")
         for it in items:
             link = f"<{it.url}|{it.title}>" if it.url else it.title
             if it.summary_kr:
-                parts.append(f"- {link} — {it.summary_kr} ({it.source})")
+                parts.append(f"{_BULLET} {link} — {it.summary_kr} ({it.source})")
             else:
-                parts.append(f"- {link} ({it.source})")
+                parts.append(f"{_BULLET} {link} ({it.source})")
         parts.append("")
 
     if not any_items:

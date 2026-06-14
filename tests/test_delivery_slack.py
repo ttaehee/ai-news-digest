@@ -97,7 +97,27 @@ def test_item_line_inlines_summary_after_link():
         )
     text = _sent_payload(route)["text"]
     # default _item summary is "간결 한 줄"
-    assert "- <https://e/foo|Foo> — 간결 한 줄 (OpenAI Blog)" in text
+    assert "• <https://e/foo|Foo> — 간결 한 줄 (OpenAI Blog)" in text
+
+
+def test_category_header_has_emoji_prefix():
+    items_by_cat = {
+        "모델출시": (_item(title="m"),),
+        "논문":     (_item(title="p"),),
+        "툴":       (_item(title="t"),),
+        "기타":     (_item(title="o"),),
+    }
+    base = {c: () for c in CATEGORIES}
+    base.update(items_by_cat)
+    digest = Digest(categories=base)
+    with respx.mock() as router:
+        route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))
+        SlackSender(WEBHOOK).send(digest, run_at=RUN_AT)
+    text = _sent_payload(route)["text"]
+    assert "🌵 *모델출시*" in text
+    assert "📖 *논문*" in text
+    assert "🍄‍🟫 *툴*" in text
+    assert "🌿 *기타*" in text
 
 
 def test_blank_line_separates_categories():
@@ -128,7 +148,7 @@ def test_empty_summary_omits_em_dash_segment():
         route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))
         SlackSender(WEBHOOK).send(digest, run_at=RUN_AT)
     text = _sent_payload(route)["text"]
-    assert "- <https://e/bare|bare> (X)" in text
+    assert "• <https://e/bare|bare> (X)" in text
     assert "bare —" not in text  # no orphan em-dash when summary is blank
 
 
