@@ -26,14 +26,16 @@
 - **개선#7 (Slack mrkdwn 렌더러 분리)** — `delivery/slack.py`에 `_render_slack` 신설: `*bold*` 카테고리, `<url|title>` 클릭 가능 링크, 카테고리 사이 빈 줄. 콘솔 `render.py`는 그대로 (`feat: render Slack output with mrkdwn bold + link-wrapped titles`, `5302ff1`)
 - **fix (스키마 notes 제거)** — 모델이 매번 "AI 뉴스 다이제스트입니다" 같은 군더더기로 채우던 `notes` 필드를 두 provider 스키마에서 제거. 폴백 경로는 그대로 (`fix: stop emitting boilerplate "메모: ..." footer`, `79073e6`)
 - **개선#8 (Slack 리스트 시각)** — `-`→`•` 불릿 + 🌵/📖/🍄‍🟫/🌿 이모지 카테고리 헤더. `_render_slack`만 변경 (`feat: render Slack list with bullets and emoji category headers`, `38b82a8`)
+- **개선#9 (Hacker News 소스 추가)** — Algolia HN Search API(`search_by_date`) 통해 AI 화제글 수집. `query`+`optionalWords`에 키워드 7개(AI/LLM/GPT/Claude/Gemini/Anthropic/OpenAI) 넣어 OR-like recall을 1회 호출로. min_points=50, hitsPerPage=30. `Source` ABC 직접 구현, RSSSource와 별개. check_feeds/test_feeds_live는 RSSSource만 보므로 HN은 그쪽에서 제외 (의도) (`feat: add Hacker News source via Algolia search (optionalWords for OR recall)`, `3818085`)
+- **개선#10 (Community 카테고리 + 영어 헤더 + dedup 끔)** — 5번째 카테고리 Community 신설, source='Hacker News' 항목 전용 엄격 분류. 동시에 헤더를 한국어→영어(Model/Paper/Tool/Misc/Community)로 통일하고 시스템 프롬프트의 dedup 규칙 제거(공식+HN 같은 발표가 둘 다 보존). 🍊 이모지. 9개 파일 동시 갱신 (`feat: introduce Community category for HN with English headers and no dedup`, `1507a25`)
 
 ## 다음
-**본 라인업 완료 + 슬랙 프로덕션 안착.** 매일 KST 09시(UTC 00시)에 자동 Slack 발송. 다음 작업은 아래 "다음에 개선" 항목들에서 선택.
+**본 라인업 완료 + 슬랙 프로덕션 안착 + HN/Community 통합 검증 완료.** 매일 KST 09시(UTC 00시)에 자동 Slack 발송, 5개 카테고리(Model/Paper/Tool/Misc/Community).
 
 ## 다음에 개선 (작은 후속 작업, 본 라인업과 별개)
-- **Hacker News 소스 추가** — 1차 소스 원칙으로 PLAN §4에서 제외했지만, 사람들 반응·화제성 신호를 잡으려고 재검토. Algolia API(`https://hn.algolia.com/api/v1/search_by_date?tags=story&query=AI`) 등으로 RSS-like fetch 가능.
 - **Anthropic 소스 검토** — 공식 RSS 미제공으로 PLAN §4에서 드롭했지만, 그 후 추가됐는지 다시 확인. 여전히 없으면 sitemap 폴링이나 다른 우회 검토.
 - **EmailSender 활성화** — SMTPConfig 검증까지 작성된 스캐폴드. SMTP 자격증명 채우고 `smtplib`로 실 발송 구현하면 끝. Slack과 같은 패턴.
+- **check_feeds.py 폴리모픽 리팩터** — 현재 `isinstance(RSSSource)` 필터라 HnSource는 헬스체크에서 빠짐. `src.fetch()` 직접 호출하는 폴리모픽 검사로 바꾸면 새 Source 타입도 자동 포함.
 
 ## 이어가는 법
 새 세션에서:
