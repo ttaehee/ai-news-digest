@@ -37,7 +37,6 @@ GEMINI_SCHEMA: dict[str, Any] = {
             "properties": {cat: {"type": "array", "items": _DIGEST_ITEM_SCHEMA} for cat in CATEGORIES},
             "required": list(CATEGORIES),
         },
-        "notes": {"type": "string"},
     },
     "required": ["categories"],
 }
