@@ -89,3 +89,18 @@ def score_items(items: list[dict]) -> DigestScore:
         for item in items
     )
     return DigestScore(items=scored)
+
+
+def score_digest(digest) -> DigestScore:
+    """Flatten a Digest's categories and score every item.
+
+    Takes any object with a ``categories`` dict mapping to iterables of items
+    that have ``.title`` and ``.summary_kr`` (duck-typed so eval/ doesn't
+    import ai_processor).
+    """
+    items = [
+        {"title": it.title, "summary_kr": it.summary_kr}
+        for cat_items in digest.categories.values()
+        for it in cat_items
+    ]
+    return score_items(items)

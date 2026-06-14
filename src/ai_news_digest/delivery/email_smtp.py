@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from ..ai_processor import Digest
+from ..eval import DigestScore
 from ..render import render_text
 from .base import Sender
 
@@ -41,8 +42,11 @@ class EmailSender(Sender):
         *,
         run_at: datetime | None = None,
         failed_sources: list[str] | None = None,
+        score: DigestScore | None = None,
     ) -> None:
-        _body = render_text(digest, run_at=run_at, failed_sources=failed_sources)
+        _body = render_text(
+            digest, run_at=run_at, failed_sources=failed_sources, score=score
+        )
         del _body
         raise NotImplementedError(
             "EmailSender is scaffolded but not wired. Keep DRY_RUN=1 (default) "

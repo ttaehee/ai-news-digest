@@ -16,6 +16,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Iterable
 
 from .ai_processor import CATEGORIES, Digest
+from .eval import DigestScore
+from .eval.constants import QUALITY_PASS_THRESHOLD
 
 KST = timezone(timedelta(hours=9))
 
@@ -25,6 +27,7 @@ def render_text(
     *,
     run_at: datetime | None = None,
     failed_sources: Iterable[str] | None = None,
+    score: DigestScore | None = None,
 ) -> str:
     if run_at is None:
         run_at = datetime.now(timezone.utc)
@@ -59,6 +62,16 @@ def render_text(
     if digest.notes:
         lines.append(f"메모: {digest.notes}")
         lines.append("")
+
+    if score is not None and score.total > 0:
+        pct = round(score.pass_rate * 100)
+        below = score.pass_rate < QUALITY_PASS_THRESHOLD
+        emoji = "⚠️" if below else "📊"
+        body = f"{score.passed_count}/{score.total} 통과 ({pct}%)"
+        suffix = (
+            f" — 기준 {round(QUALITY_PASS_THRESHOLD * 100)}% 미달" if below else ""
+        )
+        lines.append(f"{emoji} 요약 품질: {body}{suffix}")
 
     failed = list(failed_sources or [])
     if failed:

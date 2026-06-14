@@ -54,3 +54,7 @@ TITLE_SIM_THRESHOLD: float = 0.5
 
 # Hard length cap for summary_kr (characters).
 MAX_SUMMARY_LENGTH: int = 120
+
+# Pass-rate floor for the renderer's quality footer — below this, the
+# rendered line switches to a ⚠ warning variant with a "기준 미달" suffix.
+QUALITY_PASS_THRESHOLD: float = 0.7

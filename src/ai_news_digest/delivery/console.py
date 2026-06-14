@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import IO
 
 from ..ai_processor import Digest
+from ..eval import DigestScore
 from ..render import render_text
 from .base import Sender
 
@@ -26,8 +27,11 @@ class ConsoleSender(Sender):
         *,
         run_at: datetime | None = None,
         failed_sources: list[str] | None = None,
+        score: DigestScore | None = None,
     ) -> None:
-        text = render_text(digest, run_at=run_at, failed_sources=failed_sources)
+        text = render_text(
+            digest, run_at=run_at, failed_sources=failed_sources, score=score
+        )
         out = self._stream if self._stream is not None else sys.stdout
         out.write(text)
         out.flush()

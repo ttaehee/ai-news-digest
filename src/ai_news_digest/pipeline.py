@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 
 from .ai_processor import Digest, process
 from .delivery.base import Sender
+from .eval import DigestScore, score_digest
 from .normalize import normalize
 from .providers.base import LLMProvider
 from .sources.base import RawItem, Source
@@ -37,6 +38,7 @@ class RunResult:
     normalized_count: int
     failed_sources: list[str] = field(default_factory=list)
     digest: Digest | None = None
+    score: DigestScore | None = None
     sent: bool = False
     elapsed_total_s: float = 0.0
 
@@ -80,7 +82,17 @@ def run(
         provider.model,
     )
 
-    sender.send(digest, run_at=now, failed_sources=failed)
+    # Fallback digests have empty summaries → eval would trivially "pass"
+    # which misleads. Skip scoring for those; the fallback banner already
+    # signals the situation.
+    score = None if digest.fallback else score_digest(digest)
+    if score is not None:
+        log.info(
+            "eval: %d/%d summaries pass (%.0f%%)",
+            score.passed_count, score.total, score.pass_rate * 100,
+        )
+
+    sender.send(digest, run_at=now, failed_sources=failed, score=score)
     log.info("deliver: %s sent (sources failed: %s)", type(sender).__name__, failed or "none")
 
     return RunResult(
@@ -88,6 +100,7 @@ def run(
         normalized_count=len(items),
         failed_sources=failed,
         digest=digest,
+        score=score,
         sent=True,
         elapsed_total_s=time.monotonic() - started,
     )

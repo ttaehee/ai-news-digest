@@ -11,6 +11,7 @@ import respx
 
 from ai_news_digest.ai_processor import CATEGORIES, Digest, DigestItem
 from ai_news_digest.delivery.slack import SlackSender
+from ai_news_digest.eval.scorer import DigestScore, ItemScore, RuleViolation
 
 
 WEBHOOK = "https://hooks.slack.example.com/services/T0/B0/XYZ"
@@ -200,6 +201,51 @@ def test_raises_on_5xx_status():
         router.post(WEBHOOK).mock(return_value=httpx.Response(503, text="busy"))
         with pytest.raises(httpx.HTTPStatusError):
             SlackSender(WEBHOOK).send(_empty_digest(), run_at=RUN_AT)
+
+
+def _score(passed: int, total: int) -> DigestScore:
+    items = tuple(
+        ItemScore(
+            title=f"t{i}",
+            summary_kr="s",
+            violations=() if i < passed else (RuleViolation("banned", "혁신"),),
+            title_sim=0.0,
+        )
+        for i in range(total)
+    )
+    return DigestScore(items=items)
+
+
+def test_quality_line_appears_with_slack_bold():
+    with respx.mock() as router:
+        route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))
+        SlackSender(WEBHOOK).send(
+            _digest_with((_item(),)),
+            run_at=RUN_AT,
+            score=_score(passed=12, total=15),
+        )
+    text = _sent_payload(route)["text"]
+    assert "📊 *요약 품질*: 12/15 통과 (80%)" in text
+
+
+def test_quality_line_warns_below_threshold_in_slack():
+    with respx.mock() as router:
+        route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))
+        SlackSender(WEBHOOK).send(
+            _digest_with((_item(),)),
+            run_at=RUN_AT,
+            score=_score(passed=5, total=15),
+        )
+    text = _sent_payload(route)["text"]
+    assert "⚠️ *요약 품질*: 5/15 통과 (33%) — 기준 70% 미달" in text
+
+
+def test_quality_line_omitted_when_score_none_in_slack():
+    with respx.mock() as router:
+        route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))
+        SlackSender(WEBHOOK).send(_digest_with((_item(),)), run_at=RUN_AT)
+    text = _sent_payload(route)["text"]
+    assert "요약 품질" not in text
 
 
 def test_raises_on_network_error():

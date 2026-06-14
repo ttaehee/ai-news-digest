@@ -7,12 +7,20 @@ Loads:
 * `scorer` — aggregate ItemScore / DigestScore
 """
 
-from .scorer import DigestScore, ItemScore, RuleViolation, score_item, score_items
+from .scorer import (
+    DigestScore,
+    ItemScore,
+    RuleViolation,
+    score_digest,
+    score_item,
+    score_items,
+)
 
 __all__ = [
     "DigestScore",
     "ItemScore",
     "RuleViolation",
+    "score_digest",
     "score_item",
     "score_items",
 ]

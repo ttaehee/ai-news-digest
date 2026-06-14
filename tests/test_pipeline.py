@@ -186,3 +186,39 @@ def test_returns_elapsed_total_seconds():
     src = FakeSource("ok", items=[_item()])
     result = run([src], FakeProvider(), _make_sender(), now=NOW)
     assert result.elapsed_total_s >= 0
+
+
+def test_score_computed_and_passed_to_sender():
+    src = FakeSource("ok", items=[_item()])
+    sender = _make_sender()
+    # FakeProvider with one model-emitted item so score.total > 0
+    provider = FakeProvider(payload={
+        "categories": {
+            **{c: [] for c in CATEGORIES},
+            "Model": [{
+                "title": "x", "url": "https://e/x", "source": "Src",
+                "importance": 8, "summary_kr": "깨끗한 한 줄 요약.",
+            }],
+        }
+    })
+    result = run([src], provider, sender, now=NOW)
+    assert result.score is not None
+    assert result.score.total == 1
+    assert sender.send.call_args.kwargs["score"] is result.score
+
+
+def test_score_is_none_for_fallback_digest():
+    src = FakeSource("ok", items=[_item()])
+
+    class BadProvider(LLMProvider):
+        name = "bad"
+        model = "bad-1"
+
+        def emit_digest(self, items):
+            raise RuntimeError("nope")
+
+    sender = _make_sender()
+    result = run([src], BadProvider(), sender, now=NOW)
+    assert result.digest.fallback is True
+    assert result.score is None
+    assert sender.send.call_args.kwargs["score"] is None

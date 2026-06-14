@@ -14,6 +14,8 @@ from typing import Iterable
 import httpx
 
 from ..ai_processor import CATEGORIES, Digest
+from ..eval import DigestScore
+from ..eval.constants import QUALITY_PASS_THRESHOLD
 from .base import Sender
 
 log = logging.getLogger(__name__)
@@ -35,6 +37,7 @@ def _render_slack(
     *,
     run_at: datetime | None = None,
     failed_sources: Iterable[str] | None = None,
+    score: DigestScore | None = None,
 ) -> str:
     """Render the digest as Slack mrkdwn — one item per line, ``*bold*``
     category headers, clickable ``<url|title>`` links, blank line between
@@ -76,6 +79,16 @@ def _render_slack(
         parts.append(f"메모: {digest.notes}")
         parts.append("")
 
+    if score is not None and score.total > 0:
+        pct = round(score.pass_rate * 100)
+        below = score.pass_rate < QUALITY_PASS_THRESHOLD
+        emoji = "⚠️" if below else "📊"
+        body = f"{score.passed_count}/{score.total} 통과 ({pct}%)"
+        suffix = (
+            f" — 기준 {round(QUALITY_PASS_THRESHOLD * 100)}% 미달" if below else ""
+        )
+        parts.append(f"{emoji} *요약 품질*: {body}{suffix}")
+
     failed = list(failed_sources or [])
     if failed:
         parts.append(f"(일부 소스 실패: {', '.join(failed)})")
@@ -95,8 +108,11 @@ class SlackSender(Sender):
         *,
         run_at: datetime | None = None,
         failed_sources: list[str] | None = None,
+        score: DigestScore | None = None,
     ) -> None:
-        body = _render_slack(digest, run_at=run_at, failed_sources=failed_sources)
+        body = _render_slack(
+            digest, run_at=run_at, failed_sources=failed_sources, score=score
+        )
         try:
             resp = httpx.post(
                 self.webhook_url,

@@ -9,6 +9,7 @@ import pytest
 
 from ai_news_digest.ai_processor import CATEGORIES, Digest, DigestItem
 from ai_news_digest.delivery.console import ConsoleSender
+from ai_news_digest.eval.scorer import DigestScore, ItemScore, RuleViolation
 from ai_news_digest.render import KST, render_text
 
 
@@ -105,6 +106,51 @@ def test_fallback_notice_when_fallback_flag_set():
 def test_notes_emitted_when_present():
     text = render_text(_digest(notes="추가 메모"), run_at=RUN_AT)
     assert "메모: 추가 메모" in text
+
+
+def _score(passed: int, total: int) -> DigestScore:
+    items = tuple(
+        ItemScore(
+            title=f"t{i}",
+            summary_kr="s",
+            violations=() if i < passed else (RuleViolation("banned", "혁신"),),
+            title_sim=0.0,
+        )
+        for i in range(total)
+    )
+    return DigestScore(items=items)
+
+
+def test_quality_line_appears_when_score_provided():
+    text = render_text(
+        _digest(cats={"Model": (_item(),)}),
+        run_at=RUN_AT,
+        score=_score(passed=12, total=15),
+    )
+    assert "📊 요약 품질: 12/15 통과 (80%)" in text
+
+
+def test_quality_line_warns_below_threshold():
+    text = render_text(
+        _digest(cats={"Model": (_item(),)}),
+        run_at=RUN_AT,
+        score=_score(passed=5, total=15),
+    )
+    assert "⚠️ 요약 품질: 5/15 통과 (33%) — 기준 70% 미달" in text
+
+
+def test_quality_line_omitted_when_score_none():
+    text = render_text(_digest(cats={"Model": (_item(),)}), run_at=RUN_AT)
+    assert "요약 품질" not in text
+
+
+def test_quality_line_omitted_when_score_total_zero():
+    text = render_text(
+        _digest(cats={"Model": (_item(),)}),
+        run_at=RUN_AT,
+        score=DigestScore(items=()),
+    )
+    assert "요약 품질" not in text
 
 
 def test_failed_sources_footer():
