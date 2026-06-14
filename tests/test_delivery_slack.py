@@ -27,7 +27,7 @@ def _item(title="Foo released", url="https://e/foo", source="OpenAI Blog") -> Di
     )
 
 
-def _digest_with(items: tuple[DigestItem, ...] = (), cat: str = "모델출시") -> Digest:
+def _digest_with(items: tuple[DigestItem, ...] = (), cat: str = "Model") -> Digest:
     base = {c: () for c in CATEGORIES}
     base[cat] = items
     return Digest(categories=base)
@@ -72,9 +72,9 @@ def test_category_header_uses_slack_bold_not_markdown_pound():
         route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))
         SlackSender(WEBHOOK).send(_digest_with((_item(),)), run_at=RUN_AT)
     text = _sent_payload(route)["text"]
-    assert "*모델출시*" in text
+    assert "*Model*" in text
     # Slack mrkdwn doesn't render `#` headings — must not emit them.
-    assert "# 모델출시" not in text
+    assert "# Model" not in text
 
 
 def test_title_wrapped_in_slack_link_syntax():
@@ -102,10 +102,11 @@ def test_item_line_inlines_summary_after_link():
 
 def test_category_header_has_emoji_prefix():
     items_by_cat = {
-        "모델출시": (_item(title="m"),),
-        "논문":     (_item(title="p"),),
-        "툴":       (_item(title="t"),),
-        "기타":     (_item(title="o"),),
+        "Model":     (_item(title="m"),),
+        "Paper":     (_item(title="p"),),
+        "Tool":      (_item(title="t"),),
+        "Misc":      (_item(title="o"),),
+        "Community": (_item(title="c"),),
     }
     base = {c: () for c in CATEGORIES}
     base.update(items_by_cat)
@@ -114,25 +115,26 @@ def test_category_header_has_emoji_prefix():
         route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))
         SlackSender(WEBHOOK).send(digest, run_at=RUN_AT)
     text = _sent_payload(route)["text"]
-    assert "🌵 *모델출시*" in text
-    assert "📖 *논문*" in text
-    assert "🍄‍🟫 *툴*" in text
-    assert "🌿 *기타*" in text
+    assert "🌵 *Model*" in text
+    assert "📖 *Paper*" in text
+    assert "🍄‍🟫 *Tool*" in text
+    assert "🌿 *Misc*" in text
+    assert "🍊 *Community*" in text
 
 
 def test_blank_line_separates_categories():
     items_a = (_item(title="a", url="https://e/a"),)
     items_b = (_item(title="b", url="https://e/b"),)
     base = {c: () for c in CATEGORIES}
-    base["모델출시"] = items_a
-    base["논문"] = items_b
+    base["Model"] = items_a
+    base["Paper"] = items_b
     digest = Digest(categories=base)
     with respx.mock() as router:
         route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))
         SlackSender(WEBHOOK).send(digest, run_at=RUN_AT)
     text = _sent_payload(route)["text"]
-    a_idx = text.index("*모델출시*")
-    b_idx = text.index("*논문*")
+    a_idx = text.index("*Model*")
+    b_idx = text.index("*Paper*")
     # at least one blank line between the two category sections
     assert "\n\n" in text[a_idx:b_idx]
 
@@ -142,7 +144,7 @@ def test_empty_summary_omits_em_dash_segment():
         title="bare", url="https://e/bare", source="X", importance=0, summary_kr=""
     )
     base = {c: () for c in CATEGORIES}
-    base["기타"] = (item,)
+    base["Misc"] = (item,)
     digest = Digest(categories=base)
     with respx.mock() as router:
         route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))

@@ -1,9 +1,8 @@
 """Gemini provider — google-genai SDK, structured output via response_schema.
 
-Korean property keys ("모델출시", etc.) are used directly; the schema mirrors
-the Claude tool's input shape so the validator downstream is provider-agnostic.
-If a future Gemini revision rejects non-ASCII keys, swap to English keys and
-map at the provider boundary (PLAN §11).
+Category keys are plain ASCII English ('Model', 'Paper', 'Tool', 'Misc',
+'Community') and the schema mirrors the Claude tool's input shape so the
+validator downstream is provider-agnostic.
 """
 
 from __future__ import annotations

@@ -50,14 +50,14 @@ def _payload(**cats) -> dict:
 # --- schema sanity --------------------------------------------------------
 
 
-def test_schema_lists_all_four_categories():
+def test_schema_lists_all_categories():
     cats = GEMINI_SCHEMA["properties"]["categories"]
     assert set(cats["properties"]) == set(CATEGORIES)
     assert set(cats["required"]) == set(CATEGORIES)
 
 
 def test_schema_item_requires_title_url_source_importance_summary():
-    item = GEMINI_SCHEMA["properties"]["categories"]["properties"]["모델출시"]["items"]
+    item = GEMINI_SCHEMA["properties"]["categories"]["properties"]["Model"]["items"]
     assert set(item["required"]) == {
         "title",
         "url",
@@ -79,7 +79,7 @@ def test_model_override_respected():
 
 
 def test_emit_digest_returns_parsed_json_dict():
-    payload = _payload(논문=[_payload_item()])
+    payload = _payload(Paper=[_payload_item()])
     text = json.dumps(payload, ensure_ascii=False)
 
     client = MagicMock()
@@ -90,7 +90,7 @@ def test_emit_digest_returns_parsed_json_dict():
 
 
 def test_emit_digest_passes_model_and_schema_config():
-    payload = _payload(모델출시=[_payload_item()])
+    payload = _payload(Model=[_payload_item()])
     client = MagicMock()
     client.models.generate_content.return_value = SimpleNamespace(
         text=json.dumps(payload, ensure_ascii=False)

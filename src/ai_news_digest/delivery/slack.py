@@ -22,10 +22,11 @@ _TIMEOUT_S = 10.0
 _KST = timezone(timedelta(hours=9))
 _BULLET = "•"
 _CATEGORY_EMOJI: dict[str, str] = {
-    "모델출시": "🌵",
-    "논문":     "📖",
-    "툴":       "🍄‍🟫",
-    "기타":     "🌿",
+    "Model":     "🌵",
+    "Paper":     "📖",
+    "Tool":      "🍄‍🟫",
+    "Misc":      "🌿",
+    "Community": "🍊",
 }
 
 

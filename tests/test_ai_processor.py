@@ -100,11 +100,11 @@ def test_items_to_prompt_json_handles_none_date():
 # --- validation --------------------------------------------------------
 
 def test_validate_payload_builds_digest():
-    payload = _payload(모델출시=[_payload_item()])
+    payload = _payload(Model=[_payload_item()])
     d = _validate_payload(payload)
     assert isinstance(d, Digest)
-    assert len(d.categories["모델출시"]) == 1
-    assert d.categories["모델출시"][0].summary_kr == "ko summary"
+    assert len(d.categories["Model"]) == 1
+    assert d.categories["Model"][0].summary_kr == "ko summary"
 
 
 def test_validate_payload_trims_to_top_per_category_by_importance():
@@ -112,8 +112,8 @@ def test_validate_payload_trims_to_top_per_category_by_importance():
         _payload_item(title=f"#{i}", url=f"https://e/{i}", importance=i)
         for i in range(10)
     ]
-    d = _validate_payload(_payload(모델출시=items))
-    kept = d.categories["모델출시"]
+    d = _validate_payload(_payload(Model=items))
+    kept = d.categories["Model"]
     assert len(kept) == TOP_PER_CATEGORY
     assert [it.importance for it in kept] == list(range(9, 9 - TOP_PER_CATEGORY, -1))
 
@@ -124,7 +124,7 @@ def test_validate_payload_raises_without_categories_key():
 
 
 def test_validate_payload_raises_when_category_not_list():
-    bad = {"categories": {**{c: [] for c in CATEGORIES}, "모델출시": "oops"}}
+    bad = {"categories": {**{c: [] for c in CATEGORIES}, "Model": "oops"}}
     with pytest.raises(ValueError, match="must be a list"):
         _validate_payload(bad)
 
@@ -161,13 +161,13 @@ def test_process_returns_empty_digest_on_empty_input():
 def test_process_uses_caller_and_returns_digest():
     items = [_raw()]
     caller = MagicMock(
-        return_value=_payload(모델출시=[_payload_item(title="MyTitle")])
+        return_value=_payload(Model=[_payload_item(title="MyTitle")])
     )
     d = process(items, caller=caller)
     caller.assert_called_once()
     (passed_items,) = caller.call_args.args
     assert passed_items == items
-    assert d.categories["모델출시"][0].title == "MyTitle"
+    assert d.categories["Model"][0].title == "MyTitle"
     assert d.fallback is False
 
 
@@ -176,11 +176,11 @@ def test_process_uses_caller_and_returns_digest():
 def test_process_retries_once_on_first_failure():
     items = [_raw()]
     caller = MagicMock(
-        side_effect=[ValueError("nope"), _payload(논문=[_payload_item()])]
+        side_effect=[ValueError("nope"), _payload(Paper=[_payload_item()])]
     )
     d = process(items, caller=caller)
     assert caller.call_count == 2
-    assert d.categories["논문"][0].title == "T"
+    assert d.categories["Paper"][0].title == "T"
     assert d.fallback is False
 
 
@@ -195,17 +195,17 @@ def test_process_falls_back_after_two_failures():
     assert d.fallback is True
     assert d.notes == "원본 링크 덤프(폴백)"
     # All items dumped into 기타 with importance 0 and empty summary
-    assert len(d.categories["기타"]) == 2
-    assert {it.url for it in d.categories["기타"]} == {"https://e/1", "https://e/2"}
-    assert all(it.importance == 0 for it in d.categories["기타"])
-    assert all(it.summary_kr == "" for it in d.categories["기타"])
+    assert len(d.categories["Misc"]) == 2
+    assert {it.url for it in d.categories["Misc"]} == {"https://e/1", "https://e/2"}
+    assert all(it.importance == 0 for it in d.categories["Misc"])
+    assert all(it.summary_kr == "" for it in d.categories["Misc"])
 
 
 def test_fallback_digest_uses_url_when_title_missing():
     item = RawItem(title="", url="https://e/x", source="s", published_at=NOW, raw_text="")
     d = _fallback_digest([item])
     assert d.fallback is True
-    assert d.categories["기타"][0].title == "https://e/x"
+    assert d.categories["Misc"][0].title == "https://e/x"
 
 
 def test_attempt_sleeps_with_backoff_between_failed_and_next_attempt(monkeypatch):
@@ -215,7 +215,7 @@ def test_attempt_sleeps_with_backoff_between_failed_and_next_attempt(monkeypatch
         lambda s: sleeps.append(s),
     )
     caller = MagicMock(
-        side_effect=[ValueError("first"), _payload(모델출시=[_payload_item()])]
+        side_effect=[ValueError("first"), _payload(Model=[_payload_item()])]
     )
     process([_raw()], caller=caller)
     # Exactly one sleep, between attempt 1 (failed) and attempt 2 (success).
@@ -228,7 +228,7 @@ def test_no_sleep_when_first_attempt_succeeds(monkeypatch):
         "ai_news_digest.ai_processor.time.sleep",
         lambda s: sleeps.append(s),
     )
-    caller = MagicMock(return_value=_payload(모델출시=[_payload_item()]))
+    caller = MagicMock(return_value=_payload(Model=[_payload_item()]))
     process([_raw()], caller=caller)
     assert sleeps == []
 
@@ -237,7 +237,7 @@ def test_no_sleep_when_first_attempt_succeeds(monkeypatch):
 
 def test_process_splits_when_input_exceeds_threshold():
     items = [_raw(title=f"t{i}", url=f"https://e/{i}") for i in range(SPLIT_THRESHOLD + 2)]
-    caller = MagicMock(return_value=_payload(논문=[_payload_item()]))
+    caller = MagicMock(return_value=_payload(Paper=[_payload_item()]))
     process(items, caller=caller)
     assert caller.call_count == 2
     first_chunk, second_chunk = (c.args[0] for c in caller.call_args_list)
@@ -248,36 +248,36 @@ def test_process_splits_when_input_exceeds_threshold():
 
 
 def test_merge_digests_dedups_by_url_and_keeps_higher_importance():
-    a = _validate_payload(_payload(모델출시=[
+    a = _validate_payload(_payload(Model=[
         _payload_item(url="https://e/dup", importance=4),
         _payload_item(url="https://e/a", importance=7),
     ]))
-    b = _validate_payload(_payload(모델출시=[
+    b = _validate_payload(_payload(Model=[
         _payload_item(url="https://e/dup", importance=9),  # higher → should win
         _payload_item(url="https://e/b", importance=6),
     ]))
     merged = _merge_digests([a, b])
-    urls = [it.url for it in merged.categories["모델출시"]]
+    urls = [it.url for it in merged.categories["Model"]]
     assert urls == ["https://e/dup", "https://e/a", "https://e/b"]
-    assert merged.categories["모델출시"][0].importance == 9
+    assert merged.categories["Model"][0].importance == 9
 
 
 def test_merge_digests_caps_each_category_to_top_per_category():
-    half = _validate_payload(_payload(논문=[
+    half = _validate_payload(_payload(Paper=[
         _payload_item(url=f"https://e/{i}", importance=10 - i) for i in range(5)
     ]))
-    other = _validate_payload(_payload(논문=[
+    other = _validate_payload(_payload(Paper=[
         _payload_item(url=f"https://e/o{i}", importance=10 - i) for i in range(5)
     ]))
     merged = _merge_digests([half, other])
-    assert len(merged.categories["논문"]) == TOP_PER_CATEGORY
+    assert len(merged.categories["Paper"]) == TOP_PER_CATEGORY
 
 
 def test_merge_clears_fallback_flag_when_real_items_outsort_dump():
     # Real items in 기타 push the fallback's importance-0 entries out of the
     # top-N; merged digest is fully real.
     real = _validate_payload(_payload(
-        기타=[
+        Misc=[
             _payload_item(url=f"https://e/r{i}", importance=10 - i)
             for i in range(TOP_PER_CATEGORY)
         ],
@@ -287,18 +287,18 @@ def test_merge_clears_fallback_flag_when_real_items_outsort_dump():
     assert merged.fallback is False
     # fallback's "원본 링크 덤프(폴백)" note dropped because its items didn't surface
     assert merged.notes == ""
-    urls = {it.url for it in merged.categories["기타"]}
+    urls = {it.url for it in merged.categories["Misc"]}
     assert urls == {f"https://e/r{i}" for i in range(TOP_PER_CATEGORY)}
 
 
 def test_merge_keeps_fallback_flag_when_dump_items_survive():
     # Real digest has nothing in 기타, so fallback dump items occupy it
     # and the warning + note must be preserved.
-    real = _validate_payload(_payload(모델출시=[_payload_item()]))
+    real = _validate_payload(_payload(Model=[_payload_item()]))
     fb = _fallback_digest([_raw(url="https://e/fb")])
     merged = _merge_digests([real, fb])
     assert merged.fallback is True
-    assert len(merged.categories["기타"]) == 1
+    assert len(merged.categories["Misc"]) == 1
     assert merged.notes == "원본 링크 덤프(폴백)"
 
 
@@ -311,10 +311,10 @@ def test_merge_two_fallback_digests_keeps_flag():
 def test_merge_keeps_real_notes_when_fallback_note_dropped():
     real = Digest(
         categories={
-            "모델출시": (),
-            "논문": (),
-            "툴": (),
-            "기타": tuple(
+            "Model": (),
+            "Paper": (),
+            "Tool": (),
+            "Misc": tuple(
                 DigestItem(
                     title=f"r{i}",
                     url=f"https://e/r{i}",

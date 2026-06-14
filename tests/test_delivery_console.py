@@ -62,22 +62,23 @@ def test_empty_digest_shows_no_items_notice():
     text = render_text(_digest(), run_at=RUN_AT)
     assert "(다이제스트에 포함할 항목 없음)" in text
     # no category headings emitted when everything's empty
-    assert "# 모델출시" not in text
+    assert "# Model" not in text
 
 
 def test_includes_only_nonempty_categories():
     text = render_text(
-        _digest(cats={"모델출시": (_item(),)}), run_at=RUN_AT
+        _digest(cats={"Model": (_item(),)}), run_at=RUN_AT
     )
-    assert "# 모델출시" in text
-    assert "# 논문" not in text
-    assert "# 툴" not in text
-    assert "# 기타" not in text
+    assert "# Model" in text
+    assert "# Paper" not in text
+    assert "# Tool" not in text
+    assert "# Misc" not in text
+    assert "# Community" not in text
 
 
 def test_item_line_inlines_summary_between_title_and_source():
     text = render_text(
-        _digest(cats={"모델출시": (_item(title="Foo", summary="간결 한 줄", source="OpenAI Blog", url="https://e/foo"),)}),
+        _digest(cats={"Model": (_item(title="Foo", summary="간결 한 줄", source="OpenAI Blog", url="https://e/foo"),)}),
         run_at=RUN_AT,
     )
     assert "- Foo — 간결 한 줄 (OpenAI Blog) · https://e/foo" in text
@@ -85,7 +86,7 @@ def test_item_line_inlines_summary_between_title_and_source():
 
 def test_empty_summary_omits_em_dash_segment():
     text = render_text(
-        _digest(cats={"논문": (_item(title="bare", summary=""),)}),
+        _digest(cats={"Paper": (_item(title="bare", summary=""),)}),
         run_at=RUN_AT,
     )
     # When summary is empty (e.g. fallback dump), line collapses to title+source+url only.
@@ -95,7 +96,7 @@ def test_empty_summary_omits_em_dash_segment():
 
 def test_fallback_notice_when_fallback_flag_set():
     text = render_text(
-        _digest(cats={"기타": (_item(),)}, fallback=True),
+        _digest(cats={"Misc": (_item(),)}, fallback=True),
         run_at=RUN_AT,
     )
     assert "원본 링크 덤프(폴백) 모드" in text
@@ -108,7 +109,7 @@ def test_notes_emitted_when_present():
 
 def test_failed_sources_footer():
     text = render_text(
-        _digest(cats={"논문": (_item(),)}),
+        _digest(cats={"Paper": (_item(),)}),
         run_at=RUN_AT,
         failed_sources=["BAIR", "Microsoft Research"],
     )
@@ -116,7 +117,7 @@ def test_failed_sources_footer():
 
 
 def test_failed_sources_omitted_when_empty():
-    text = render_text(_digest(cats={"논문": (_item(),)}), run_at=RUN_AT)
+    text = render_text(_digest(cats={"Paper": (_item(),)}), run_at=RUN_AT)
     assert "일부 소스 실패" not in text
 
 
@@ -139,15 +140,23 @@ def test_kst_offset_is_plus_9():
 def test_category_order_follows_canonical_list():
     full = _digest(
         cats={
-            "모델출시": (_item(title="m"),),
-            "논문":     (_item(title="p"),),
-            "툴":       (_item(title="t"),),
-            "기타":     (_item(title="o"),),
+            "Model":     (_item(title="m"),),
+            "Paper":     (_item(title="p"),),
+            "Tool":      (_item(title="t"),),
+            "Misc":      (_item(title="o"),),
+            "Community": (_item(title="c"),),
         }
     )
     text = render_text(full, run_at=RUN_AT)
-    # PLAN §5 order: 모델출시 → 논문 → 툴 → 기타
-    assert text.index("# 모델출시") < text.index("# 논문") < text.index("# 툴") < text.index("# 기타")
+    # CATEGORIES order: Model → Paper → Tool → Misc → Community
+    indices = [
+        text.index("# Model"),
+        text.index("# Paper"),
+        text.index("# Tool"),
+        text.index("# Misc"),
+        text.index("# Community"),
+    ]
+    assert indices == sorted(indices)
 
 
 # --- ConsoleSender -------------------------------------------------------
@@ -156,16 +165,16 @@ def test_category_order_follows_canonical_list():
 def test_console_sender_writes_to_injected_stream():
     buf = io.StringIO()
     sender = ConsoleSender(stream=buf)
-    sender.send(_digest(cats={"모델출시": (_item(title="hello"),)}), run_at=RUN_AT)
+    sender.send(_digest(cats={"Model": (_item(title="hello"),)}), run_at=RUN_AT)
     out = buf.getvalue()
     assert "AI 뉴스 다이제스트 — 2026-06-09 (KST)" in out
-    assert "# 모델출시" in out
+    assert "# Model" in out
     assert "- hello" in out
 
 
 def test_console_sender_defaults_to_stdout(capsys):
     sender = ConsoleSender()
-    sender.send(_digest(cats={"논문": (_item(title="paperX"),)}), run_at=RUN_AT)
+    sender.send(_digest(cats={"Paper": (_item(title="paperX"),)}), run_at=RUN_AT)
     captured = capsys.readouterr()
     assert "paperX" in captured.out
 
@@ -173,7 +182,7 @@ def test_console_sender_defaults_to_stdout(capsys):
 def test_console_sender_forwards_failed_sources():
     buf = io.StringIO()
     ConsoleSender(stream=buf).send(
-        _digest(cats={"논문": (_item(),)}),
+        _digest(cats={"Paper": (_item(),)}),
         run_at=RUN_AT,
         failed_sources=["NVIDIA Blogs"],
     )
@@ -183,7 +192,7 @@ def test_console_sender_forwards_failed_sources():
 def test_console_sender_renders_fallback_digest():
     buf = io.StringIO()
     fb = _digest(
-        cats={"기타": (_item(title="raw1", summary=""),)},
+        cats={"Misc": (_item(title="raw1", summary=""),)},
         notes="원본 링크 덤프(폴백)",
         fallback=True,
     )

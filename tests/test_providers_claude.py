@@ -47,7 +47,7 @@ def _fake_tool_use(payload: dict) -> SimpleNamespace:
 # --- tool schema sanity ----------------------------------------------------
 
 
-def test_tool_schema_lists_all_four_categories():
+def test_tool_schema_lists_all_categories():
     cats = EMIT_DIGEST_TOOL["input_schema"]["properties"]["categories"]
     assert set(cats["properties"]) == set(CATEGORIES)
     assert set(cats["required"]) == set(CATEGORIES)
@@ -56,7 +56,7 @@ def test_tool_schema_lists_all_four_categories():
 def test_tool_schema_requires_string_summary():
     item_schema = EMIT_DIGEST_TOOL["input_schema"]["properties"]["categories"][
         "properties"
-    ]["모델출시"]["items"]
+    ]["Model"]["items"]
     assert item_schema["properties"]["summary_kr"] == {"type": "string"}
 
 
@@ -72,7 +72,7 @@ def test_model_override_respected():
 
 
 def test_emit_digest_invokes_client_with_forced_tool_use():
-    payload = _payload(모델출시=[_payload_item()])
+    payload = _payload(Model=[_payload_item()])
     client = MagicMock()
     client.messages.create.return_value = SimpleNamespace(content=[_fake_tool_use(payload)])
 

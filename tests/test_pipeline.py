@@ -65,7 +65,7 @@ def test_collects_from_all_sources_and_passes_to_ai():
     provider = FakeProvider(
         payload={
             "categories": {
-                "모델출시": [
+                "Model": [
                     {
                         "title": "merged",
                         "url": "https://e/a1",
@@ -74,7 +74,7 @@ def test_collects_from_all_sources_and_passes_to_ai():
                         "summary_kr": "간결 한 줄",
                     }
                 ],
-                "논문": [], "툴": [], "기타": [],
+                "Paper": [], "Tool": [], "Misc": [], "Community": [],
             }
         }
     )
@@ -89,7 +89,7 @@ def test_collects_from_all_sources_and_passes_to_ai():
     sender.send.assert_called_once()
     sent_digest = sender.send.call_args.args[0]
     assert isinstance(sent_digest, Digest)
-    assert len(sent_digest.categories["모델출시"]) == 1
+    assert len(sent_digest.categories["Model"]) == 1
 
 
 def test_isolates_per_source_failures():

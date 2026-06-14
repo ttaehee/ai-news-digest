@@ -26,7 +26,7 @@ MAX_RAW_TEXT_CHARS = 1000    # raw_text truncation before sending to the LLM
 MAX_ATTEMPTS = 2             # 1 initial + 1 retry; then fallback
 RETRY_BACKOFF_S = 10.0       # wait before retrying — absorbs transient LLM 503s
 
-CATEGORIES: tuple[str, ...] = ("모델출시", "논문", "툴", "기타")
+CATEGORIES: tuple[str, ...] = ("Model", "Paper", "Tool", "Misc", "Community")
 
 
 @dataclass(frozen=True)
@@ -54,12 +54,15 @@ SYSTEM_PROMPT = """\
 규칙:
 1. 사용자 입력에 정규화된 AI 뉴스 항목 목록이 JSON으로 들어온다.
 2. emit_digest 도구를 정확히 한 번 호출해 다이제스트를 반환한다. 자연어 응답은 하지 않는다.
-3. 같은 발표/논문/기사는 가장 권위 있는 1차 소스 1건으로 묶는다(중복 제거).
-4. 카테고리:
-   - 모델출시: 새로운 모델·주요 모델 업데이트·API 변경
-   - 논문: 연구·논문·기술 보고서
-   - 툴: 라이브러리·서비스·SDK·통합·플랫폼 발표
-   - 기타: 위 셋에 명확히 안 맞는 의미 있는 AI 뉴스
+3. 중복 제거는 하지 않는다. 같은 주제가 여러 소스에 나오면 각각 별개 항목으로
+   유지하고 source 규칙대로 각자 카테고리에 분류한다(예: 같은 발표의 공식 블로그는
+   Model에, 같은 발표의 Hacker News 토론은 Community에 — 둘 다 보존).
+4. 카테고리(영어 키 그대로 사용, 번역하지 말 것):
+   - Model: 새로운 모델·주요 모델 업데이트·API 변경
+   - Paper: 연구·논문·기술 보고서
+   - Tool: 라이브러리·서비스·SDK·통합·플랫폼 발표
+   - Misc: 위 셋에 명확히 안 맞는 의미 있는 AI 뉴스 (단, Hacker News 출처 제외)
+   - Community: source가 'Hacker News'인 모든 항목. 1차 소스에서 온 항목은 절대 여기로 분류하지 않는다.
 5. importance는 0–10 정수. 우선순위:
    ① 업계 파급력(새 모델·주요 API 변경 등)
    ② 출처 신뢰도(1차 소스 우선)
@@ -207,7 +210,7 @@ def _fallback_digest(items: list[RawItem]) -> Digest:
         for it in items
     )
     cats: dict[str, tuple[DigestItem, ...]] = {c: () for c in CATEGORIES}
-    cats["기타"] = dump
+    cats["Misc"] = dump
     return Digest(categories=cats, notes="원본 링크 덤프(폴백)", fallback=True)
 
 
