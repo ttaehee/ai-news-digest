@@ -28,14 +28,16 @@
 - **개선#8 (Slack 리스트 시각)** — `-`→`•` 불릿 + 🌵/📖/🍄‍🟫/🌿 이모지 카테고리 헤더. `_render_slack`만 변경 (`feat: render Slack list with bullets and emoji category headers`, `38b82a8`)
 - **개선#9 (Hacker News 소스 추가)** — Algolia HN Search API(`search_by_date`) 통해 AI 화제글 수집. `query`+`optionalWords`에 키워드 7개(AI/LLM/GPT/Claude/Gemini/Anthropic/OpenAI) 넣어 OR-like recall을 1회 호출로. min_points=50, hitsPerPage=30. `Source` ABC 직접 구현, RSSSource와 별개. check_feeds/test_feeds_live는 RSSSource만 보므로 HN은 그쪽에서 제외 (의도) (`feat: add Hacker News source via Algolia search (optionalWords for OR recall)`, `3818085`)
 - **개선#10 (Community 카테고리 + 영어 헤더 + dedup 끔)** — 5번째 카테고리 Community 신설, source='Hacker News' 항목 전용 엄격 분류. 동시에 헤더를 한국어→영어(Model/Paper/Tool/Misc/Community)로 통일하고 시스템 프롬프트의 dedup 규칙 제거(공식+HN 같은 발표가 둘 다 보존). 🍊 이모지. 9개 파일 동시 갱신 (`feat: introduce Community category for HN with English headers and no dedup`, `1507a25`)
+- **개선#11 (importance + summary 가이드 강화)** — rule 5에 가중치 추가(높임: 새 모델·연구·규제·사건, 낮춤: 단순 파트너십·인프라 보도자료성). rule 6에 "제목 번역 금지, 이게 뭔지+왜 중요한지 둘 다, 전문용어 풀어 쓰기" 명시 (`feat: tighten importance + summary guidance in system prompt`, `d02a300`)
+- **개선#12 (요약 in-prompt 예시 + 미사여구 금지어 확대)** — 1차 튜닝 후에도 "혁신을 확장한다" 같은 빈 칭찬이 남아서, 사용자 제공 나쁨/좋음 페어를 프롬프트에 직접 박고 금지어에 '혁신·강화·확장·진전·발전·도약·역량' 추가. '인코더 없는' 같은 번역된 전문용어도 jargon 리스트에 명시 (`feat: anchor summary prompt with concrete bad/good examples`, `84d7f2a`)
+- **개선#13 (check_feeds.py 폴리모픽)** — `isinstance(RSSSource)` 필터 제거하고 `src.fetch()` 직접 호출하는 폴리모픽 검사로 전환. 13개 소스 모두 자동 포함(HN까지). HTTP/kind 컬럼 drop, 테이블은 `source|items|latest|status` (`refactor: make feed health-check polymorphic over Source.fetch()`, `f71e818`)
 
 ## 다음
-**본 라인업 완료 + 슬랙 프로덕션 안착 + HN/Community 통합 검증 완료.** 매일 KST 09시(UTC 00시)에 자동 Slack 발송, 5개 카테고리(Model/Paper/Tool/Misc/Community).
+**본 라인업 완료 + 슬랙 프로덕션 안착 + HN/Community 통합 검증 완료.** 매일 KST 09시(UTC 00시)에 자동 Slack 발송, 5개 카테고리(Model/Paper/Tool/Misc/Community), 13개 소스.
 
 ## 다음에 개선 (작은 후속 작업, 본 라인업과 별개)
 - **Anthropic 소스 검토** — 공식 RSS 미제공으로 PLAN §4에서 드롭했지만, 그 후 추가됐는지 다시 확인. 여전히 없으면 sitemap 폴링이나 다른 우회 검토.
 - **EmailSender 활성화** — SMTPConfig 검증까지 작성된 스캐폴드. SMTP 자격증명 채우고 `smtplib`로 실 발송 구현하면 끝. Slack과 같은 패턴.
-- **check_feeds.py 폴리모픽 리팩터** — 현재 `isinstance(RSSSource)` 필터라 HnSource는 헬스체크에서 빠짐. `src.fetch()` 직접 호출하는 폴리모픽 검사로 바꾸면 새 Source 타입도 자동 포함.
 
 ## 이어가는 법
 새 세션에서:
