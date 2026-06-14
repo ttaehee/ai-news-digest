@@ -32,9 +32,10 @@
 - **개선#12 (요약 in-prompt 예시 + 미사여구 금지어 확대)** — 1차 튜닝 후에도 "혁신을 확장한다" 같은 빈 칭찬이 남아서, 사용자 제공 나쁨/좋음 페어를 프롬프트에 직접 박고 금지어에 '혁신·강화·확장·진전·발전·도약·역량' 추가. '인코더 없는' 같은 번역된 전문용어도 jargon 리스트에 명시 (`feat: anchor summary prompt with concrete bad/good examples`, `84d7f2a`)
 - **개선#13 (check_feeds.py 폴리모픽)** — `isinstance(RSSSource)` 필터 제거하고 `src.fetch()` 직접 호출하는 폴리모픽 검사로 전환. 13개 소스 모두 자동 포함(HN까지). HTTP/kind 컬럼 drop, 테이블은 `source|items|latest|status` (`refactor: make feed health-check polymorphic over Source.fetch()`, `f71e818`)
 - **개선#14 (summary_kr 룰 기반 eval 하네스)** — `src/ai_news_digest/eval/` 패키지: 4개 룰(banned/jargon/title_sim/length) 체커 + 점수 집계 + 단일 소스 constants(SYSTEM_PROMPT가 import해서 drift 차단). CLI `scripts/score_summaries.py` (exit 1 on threshold), 10개 샘플 픽스처 + 27개 단위 테스트. 프롬프트 튜닝 사이클을 "Slack 눈으로 보기"에서 "로컬 점수 비교"로 단축 (`feat: add rule-based eval harness for summary_kr quality`, `f2219e0`)
+- **개선#15 (eval 하네스를 파이프라인에 연결)** — pipeline이 발송 직전 `score_digest(digest)` 호출 → console/Slack 렌더러가 footer에 `📊 요약 품질: N/M 통과 (XX%)` 한 줄 추가. `pass_rate < QUALITY_PASS_THRESHOLD(0.7)`면 `⚠️` + "기준 70% 미달" 경고. 폴백 디지스트는 빈 요약으로 trivially pass되니 skip. `Sender.send`에 `score` kwarg 추가, `RunResult.score` 필드로 관찰성 확보 (`feat: surface summary_kr quality score in digest footer`, `3dcc3bc`)
 
 ## 다음
-**본 라인업 완료 + 슬랙 프로덕션 안착 + HN/Community 통합 + 룰 기반 eval 도입.** 매일 KST 09시(UTC 00시)에 자동 Slack 발송, 5개 카테고리(Model/Paper/Tool/Misc/Community), 13개 소스, 175 tests.
+**본 라인업 완료 + 슬랙 프로덕션 안착 + HN/Community 통합 + eval 하네스 도입·자동 점수 표시.** 매일 KST 09시(UTC 00시)에 자동 Slack 발송, 5개 카테고리(Model/Paper/Tool/Misc/Community), 13개 소스, 184 tests.
 
 ## 다음에 개선 (작은 후속 작업, 본 라인업과 별개)
 - **Anthropic 소스 검토** — 공식 RSS 미제공으로 PLAN §4에서 드롭했지만, 그 후 추가됐는지 다시 확인. 여전히 없으면 sitemap 폴링이나 다른 우회 검토.
