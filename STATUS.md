@@ -31,9 +31,10 @@
 - **개선#11 (importance + summary 가이드 강화)** — rule 5에 가중치 추가(높임: 새 모델·연구·규제·사건, 낮춤: 단순 파트너십·인프라 보도자료성). rule 6에 "제목 번역 금지, 이게 뭔지+왜 중요한지 둘 다, 전문용어 풀어 쓰기" 명시 (`feat: tighten importance + summary guidance in system prompt`, `d02a300`)
 - **개선#12 (요약 in-prompt 예시 + 미사여구 금지어 확대)** — 1차 튜닝 후에도 "혁신을 확장한다" 같은 빈 칭찬이 남아서, 사용자 제공 나쁨/좋음 페어를 프롬프트에 직접 박고 금지어에 '혁신·강화·확장·진전·발전·도약·역량' 추가. '인코더 없는' 같은 번역된 전문용어도 jargon 리스트에 명시 (`feat: anchor summary prompt with concrete bad/good examples`, `84d7f2a`)
 - **개선#13 (check_feeds.py 폴리모픽)** — `isinstance(RSSSource)` 필터 제거하고 `src.fetch()` 직접 호출하는 폴리모픽 검사로 전환. 13개 소스 모두 자동 포함(HN까지). HTTP/kind 컬럼 drop, 테이블은 `source|items|latest|status` (`refactor: make feed health-check polymorphic over Source.fetch()`, `f71e818`)
+- **개선#14 (summary_kr 룰 기반 eval 하네스)** — `src/ai_news_digest/eval/` 패키지: 4개 룰(banned/jargon/title_sim/length) 체커 + 점수 집계 + 단일 소스 constants(SYSTEM_PROMPT가 import해서 drift 차단). CLI `scripts/score_summaries.py` (exit 1 on threshold), 10개 샘플 픽스처 + 27개 단위 테스트. 프롬프트 튜닝 사이클을 "Slack 눈으로 보기"에서 "로컬 점수 비교"로 단축 (`feat: add rule-based eval harness for summary_kr quality`, `f2219e0`)
 
 ## 다음
-**본 라인업 완료 + 슬랙 프로덕션 안착 + HN/Community 통합 검증 완료.** 매일 KST 09시(UTC 00시)에 자동 Slack 발송, 5개 카테고리(Model/Paper/Tool/Misc/Community), 13개 소스.
+**본 라인업 완료 + 슬랙 프로덕션 안착 + HN/Community 통합 + 룰 기반 eval 도입.** 매일 KST 09시(UTC 00시)에 자동 Slack 발송, 5개 카테고리(Model/Paper/Tool/Misc/Community), 13개 소스, 175 tests.
 
 ## 다음에 개선 (작은 후속 작업, 본 라인업과 별개)
 - **Anthropic 소스 검토** — 공식 RSS 미제공으로 PLAN §4에서 드롭했지만, 그 후 추가됐는지 다시 확인. 여전히 없으면 sitemap 폴링이나 다른 우회 검토.
