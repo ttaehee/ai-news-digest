@@ -48,7 +48,12 @@ class Digest:
         return sum(len(v) for v in self.categories.values())
 
 
-SYSTEM_PROMPT = """\
+from .eval.constants import BANNED_WORDS, JARGON_TERMS, MAX_SUMMARY_LENGTH
+
+_BANNED_LIST = ", ".join(f"'{w}'" for w in BANNED_WORDS)
+_JARGON_LIST = ", ".join(f"'{w}'" for w in JARGON_TERMS)
+
+SYSTEM_PROMPT = f"""\
 당신은 한국어 AI 뉴스 다이제스트 큐레이터다.
 
 규칙:
@@ -77,14 +82,12 @@ SYSTEM_PROMPT = """\
 6. summary_kr은 짧은 한 줄 문자열(1–2개의 짧은 문장). 다음을 모두 지킨다:
    - 제목을 번역만 한 문장 금지. 본문(raw_text)에서 핵심을 풀어 설명한다.
    - '이게 뭔지(누가/무엇을)' + '왜 중요한지/뭐가 새로운지' 둘 다 담는다.
-   - 전문용어(예: 'encoder-free', '인코더 없는', 'self-consistency', 'KV cache',
-     'GRPO', 'distillation', 'embedding')는 **반드시 풀어 쓰거나 빼고**,
+   - 전문용어(예: {_JARGON_LIST})는 **반드시 풀어 쓰거나 빼고**,
      비전문가가 한 번 읽고 감 잡을 수준으로.
    - **추상적 평가어·미사여구 절대 금지**:
-     '혁신', '강화', '확장', '진전', '발전', '도약', '역량', '기대된다',
-     '중요한 이정표', '주목할 만하다', '~할 것입니다', '~할 수 있다'.
+     {_BANNED_LIST}.
      구체적으로 무엇이 어떻게 달라지는지만 쓴다.
-   - 가능하면 한국어 120자 이내.
+   - 가능하면 한국어 {MAX_SUMMARY_LENGTH}자 이내.
 
    예시:
    - 나쁨: "통합된 인코더 없는 멀티모달 모델로 AI 아키텍처 혁신을 확장한다"

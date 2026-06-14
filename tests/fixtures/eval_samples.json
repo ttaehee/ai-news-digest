@@ -1,0 +1,62 @@
+[
+  {
+    "title": "Anthropic releases Claude Sonnet 5",
+    "summary_kr": "Anthropic이 Claude Sonnet 5를 공개했다. 코딩 벤치마크에서 이전 모델보다 20% 향상됐다.",
+    "source": "Anthropic Blog",
+    "_label": "good: concrete what + concrete improvement number"
+  },
+  {
+    "title": "Google releases new diffusion-based text model",
+    "summary_kr": "구글이 이미지와 글을 함께 이해하는 새 AI 모델을 냈다. 구조를 단순하게 만들어 더 가볍고 빠르다.",
+    "source": "Google DeepMind Blog",
+    "_label": "good: unpacks jargon, what + why"
+  },
+  {
+    "title": "Position: Hippocampal Explicit Memory Is the Cornerstone for AGI",
+    "summary_kr": "LLM을 AGI 수준으로 끌어올리려면 명시적 기억 시스템이 필수라고 주장하는 논문.",
+    "source": "arXiv cs.AI",
+    "_label": "good: cross-language title, sharp summary"
+  },
+  {
+    "title": "통합 멀티모달 모델 출시",
+    "summary_kr": "통합된 인코더 없는 멀티모달 모델로 AI 아키텍처 혁신을 확장한다",
+    "source": "Real bad case",
+    "_label": "bad: jargon left + banned hype (regression)"
+  },
+  {
+    "title": "새 텍스트 생성 기술",
+    "summary_kr": "역량을 강화하는 기술적 진전이 발표됐다.",
+    "source": "Real bad case",
+    "_label": "bad: 3 banned words in one sentence (역량/강화/진전) (regression)"
+  },
+  {
+    "title": "구글이 Gemini 3을 출시했다",
+    "summary_kr": "구글이 Gemini 3을 출시했다.",
+    "source": "Synthetic",
+    "_label": "bad: title-translation (near-identical Korean-Korean)"
+  },
+  {
+    "title": "self-consistency 기반 검증 연구",
+    "summary_kr": "self-consistency 기법으로 추론 정확도를 높였다.",
+    "source": "Synthetic",
+    "_label": "bad: jargon term left untouched"
+  },
+  {
+    "title": "Anthropic이 새 API 옵션 추가",
+    "summary_kr": "Anthropic이 새 API 옵션을 추가하여 개발자가 더 세밀하게 모델 동작을 제어할 수 있도록 했고, 이는 에이전트 워크플로우에서 매우 중요한 이정표가 될 것으로 기대된다고 회사 측은 밝혔으며 산업 표준이 될 전망이다.",
+    "source": "Synthetic",
+    "_label": "bad: length > 120 + banned phrases (중요한 이정표 + 기대된다)"
+  },
+  {
+    "title": "강화학습으로 게임 AI 훈련",
+    "summary_kr": "강화학습 기법을 사용해 게임 AI를 훈련하는 새 방법을 제시한다.",
+    "source": "Synthetic",
+    "_label": "good: '강화' inside '강화학습' should NOT trigger banned check"
+  },
+  {
+    "title": "분산 GPU 클러스터 논문",
+    "summary_kr": "확장 가능한 구조로 통신 비용을 30% 줄였다는 논문.",
+    "source": "Synthetic",
+    "_label": "good: '확장' inside '확장 가능' should NOT trigger banned check"
+  }
+]
