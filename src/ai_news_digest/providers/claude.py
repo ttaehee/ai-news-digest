@@ -38,7 +38,7 @@ EMIT_DIGEST_TOOL: dict[str, Any] = {
         "Emit the final categorized digest. Call this exactly once. "
         "Group similar items into the most authoritative primary source, "
         "classify by category, score importance 0–10, and write a 3-line "
-        "Korean summary per item. Return at most 5 items per category, "
+        "Korean summary per item. Return at most 3 items per category, "
         "ordered by descending importance."
     ),
     "input_schema": {

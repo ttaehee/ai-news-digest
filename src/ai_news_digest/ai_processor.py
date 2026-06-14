@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 SPLIT_THRESHOLD = 80         # > this many items triggers a halved-call
-TOP_PER_CATEGORY = 5         # cap per category in the final digest
+TOP_PER_CATEGORY = 3         # cap per category in the final digest
 MAX_RAW_TEXT_CHARS = 1000    # raw_text truncation before sending to the LLM
 MAX_ATTEMPTS = 2             # 1 initial + 1 retry; then fallback
 RETRY_BACKOFF_S = 10.0       # wait before retrying — absorbs transient LLM 503s
@@ -66,7 +66,7 @@ SYSTEM_PROMPT = """\
    ③ AI 전반 관련성
    화제성/신규성은 동점일 때만 보조 지표로 사용.
 6. summary_kr은 정확히 3줄. 1줄=요점, 2줄=배경 또는 메커니즘, 3줄=의의 또는 영향.
-7. 각 카테고리에서 importance 내림차순으로 정렬해 상위 5개만 남긴다.
+7. 각 카테고리에서 importance 내림차순으로 정렬해 상위 3개만 남긴다.
 8. 본문에 개인 이메일/전화번호/주소 등 개인정보가 보이면 요약에 절대 포함하지 않는다.
 9. 한국어로 작성하되 모델명·제품명·고유명사는 원어 그대로 둔다(예: GPT-5, Gemini 2.5, vLLM).
 """

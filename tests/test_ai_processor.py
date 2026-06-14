@@ -115,7 +115,7 @@ def test_validate_payload_trims_to_top_per_category_by_importance():
     d = _validate_payload(_payload(모델출시=items))
     kept = d.categories["모델출시"]
     assert len(kept) == TOP_PER_CATEGORY
-    assert [it.importance for it in kept] == [9, 8, 7, 6, 5]
+    assert [it.importance for it in kept] == list(range(9, 9 - TOP_PER_CATEGORY, -1))
 
 
 def test_validate_payload_raises_without_categories_key():
@@ -274,10 +274,13 @@ def test_merge_digests_caps_each_category_to_top_per_category():
 
 
 def test_merge_clears_fallback_flag_when_real_items_outsort_dump():
-    # Real items in 기타 (importance 6..10) push the fallback's importance-0
-    # entries out of the top-5; merged digest is fully real.
+    # Real items in 기타 push the fallback's importance-0 entries out of the
+    # top-N; merged digest is fully real.
     real = _validate_payload(_payload(
-        기타=[_payload_item(url=f"https://e/r{i}", importance=10 - i) for i in range(5)],
+        기타=[
+            _payload_item(url=f"https://e/r{i}", importance=10 - i)
+            for i in range(TOP_PER_CATEGORY)
+        ],
     ))
     fb = _fallback_digest([_raw(url="https://e/fb1"), _raw(url="https://e/fb2")])
     merged = _merge_digests([real, fb])
@@ -285,7 +288,7 @@ def test_merge_clears_fallback_flag_when_real_items_outsort_dump():
     # fallback's "원본 링크 덤프(폴백)" note dropped because its items didn't surface
     assert merged.notes == ""
     urls = {it.url for it in merged.categories["기타"]}
-    assert urls == {f"https://e/r{i}" for i in range(5)}
+    assert urls == {f"https://e/r{i}" for i in range(TOP_PER_CATEGORY)}
 
 
 def test_merge_keeps_fallback_flag_when_dump_items_survive():
