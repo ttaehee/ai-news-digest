@@ -11,6 +11,10 @@ on:
         description: "Dry-run? true = console only, false = actually send"
         type: boolean
         default: true
+      window_hours:
+        description: "Override WINDOW_HOURS for this run (default 26; bump to e.g. 168 for a weekend catch-up)"
+        type: string
+        default: "26"
 
 permissions:
   contents: read
@@ -42,11 +46,12 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
-          WINDOW_HOURS: "26"
-          # workflow_dispatch lets a human toggle dry_run; schedule always dry-runs.
-          # The event_name guard matters because GitHub expressions evaluate
-          # `null == false` as true (loose equality), which would otherwise let
-          # the schedule trigger fall through to 'false'.
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == false && 'false' || 'true' }}
-          DELIVERY: ""
+          # On schedule, inputs.window_hours is null → falls back to "26".
+          WINDOW_HOURS: ${{ inputs.window_hours || '26' }}
+          # Schedule always real-sends; workflow_dispatch defaults to dry_run=true
+          # so manual pokes stay safe unless the operator explicitly toggles it.
+          # __main__'s sender selection treats DRY_RUN=true as the override, so
+          # a dispatched dry-run still routes to ConsoleSender even with DELIVERY=slack.
+          DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || (inputs.dry_run && 'true' || 'false') }}
+          DELIVERY: "slack"
         run: python -m ai_news_digest
