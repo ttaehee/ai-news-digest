@@ -67,6 +67,71 @@ def test_posts_rendered_text_to_webhook():
     assert "https://e/foo" in text
 
 
+def test_category_header_uses_slack_bold_not_markdown_pound():
+    with respx.mock() as router:
+        route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))
+        SlackSender(WEBHOOK).send(_digest_with((_item(),)), run_at=RUN_AT)
+    text = _sent_payload(route)["text"]
+    assert "*모델출시*" in text
+    # Slack mrkdwn doesn't render `#` headings — must not emit them.
+    assert "# 모델출시" not in text
+
+
+def test_title_wrapped_in_slack_link_syntax():
+    with respx.mock() as router:
+        route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))
+        SlackSender(WEBHOOK).send(
+            _digest_with((_item(title="Foo", url="https://e/foo"),)),
+            run_at=RUN_AT,
+        )
+    text = _sent_payload(route)["text"]
+    assert "<https://e/foo|Foo>" in text
+
+
+def test_item_line_inlines_summary_after_link():
+    with respx.mock() as router:
+        route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))
+        SlackSender(WEBHOOK).send(
+            _digest_with((_item(title="Foo", url="https://e/foo", source="OpenAI Blog"),)),
+            run_at=RUN_AT,
+        )
+    text = _sent_payload(route)["text"]
+    # default _item summary is "간결 한 줄"
+    assert "- <https://e/foo|Foo> — 간결 한 줄 (OpenAI Blog)" in text
+
+
+def test_blank_line_separates_categories():
+    items_a = (_item(title="a", url="https://e/a"),)
+    items_b = (_item(title="b", url="https://e/b"),)
+    base = {c: () for c in CATEGORIES}
+    base["모델출시"] = items_a
+    base["논문"] = items_b
+    digest = Digest(categories=base)
+    with respx.mock() as router:
+        route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))
+        SlackSender(WEBHOOK).send(digest, run_at=RUN_AT)
+    text = _sent_payload(route)["text"]
+    a_idx = text.index("*모델출시*")
+    b_idx = text.index("*논문*")
+    # at least one blank line between the two category sections
+    assert "\n\n" in text[a_idx:b_idx]
+
+
+def test_empty_summary_omits_em_dash_segment():
+    item = DigestItem(
+        title="bare", url="https://e/bare", source="X", importance=0, summary_kr=""
+    )
+    base = {c: () for c in CATEGORIES}
+    base["기타"] = (item,)
+    digest = Digest(categories=base)
+    with respx.mock() as router:
+        route = router.post(WEBHOOK).mock(return_value=httpx.Response(200, text="ok"))
+        SlackSender(WEBHOOK).send(digest, run_at=RUN_AT)
+    text = _sent_payload(route)["text"]
+    assert "- <https://e/bare|bare> (X)" in text
+    assert "bare —" not in text  # no orphan em-dash when summary is blank
+
+
 def test_uses_kst_date_in_header():
     # 2026-06-14 00:00 UTC == 2026-06-14 09:00 KST
     with respx.mock() as router:
