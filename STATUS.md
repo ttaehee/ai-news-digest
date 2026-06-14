@@ -19,12 +19,14 @@
 - **개선#1 (AI 재시도 backoff)** — `_attempt_with_retry`에 10초 sleep 삽입. 테스트는 autouse fixture로 `time.sleep` 모킹 (`feat: back off 10s between AI retry attempts`, `af0eaa8`)
 - **개선#2 (GHA Node 24)** — `actions/checkout@v4`→@v6, `actions/setup-python@v5`→@v6로 두 워크플로 모두 업데이트. 2026-06-16 강제 전환 전 마이그레이션 완료 (`ci: bump actions/checkout to v6 and actions/setup-python to v6`, `266177e`)
 - **fix (digest.yml DRY_RUN)** — schedule 트리거가 `null == false` loose equality 때문에 `DRY_RUN=False`로 떨어지던 expression을 `github.event_name == 'workflow_dispatch'` 가드로 수정. workflow_dispatch 1회 통과: DRY_RUN=True, 양쪽 Gemini 성공, fallback=False, 6개 항목 진짜 한국어 요약, 173s (`fix: gate digest DRY_RUN expression on workflow_dispatch event`, `8b4240f`)
+- **개선#3 (SlackSender 활성화)** — 스텁 제거하고 `httpx.post(webhook, json={"text": render_text(...)})` + `raise_for_status` 실제 구현. `render.py` 공용 포맷터 재사용 → 콘솔과 동일 본문. respx 모킹 테스트 10개(생성자 2 + send 8: 본문/헤더/failed_sources/단일호출/4xx/5xx/네트워크 에러) (`feat: implement SlackSender via httpx POST to incoming webhook`, `0ae4537`)
 
 ## 다음
 **본 라인업 완료.** 아래 "다음에 개선" 항목 중 우선순위 매기는 게 다음 결정 포인트.
 
 ## 다음에 개선 (작은 후속 작업, 본 라인업과 별개)
 - **Gemini 호출 latency** — gemini-2.5-flash thinking 활성화로 1회 호출 ~80~170초. `LLM_MODEL=gemini-2.5-flash-lite`로 내리거나, thinking budget을 낮추는 옵션 추가 검토.
+- **EmailSender 활성화** — SMTPConfig 검증까지 작성된 스캐폴드. SMTP 자격증명 채우고 `smtplib`로 실 발송 구현하면 끝. Slack과 같은 패턴.
 
 ## 이어가는 법
 새 세션에서:
