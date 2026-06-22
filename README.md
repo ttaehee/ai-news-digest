@@ -94,6 +94,62 @@ on:
 - GitHub UI → **Actions → digest → Run workflow** → `dry_run` 토글.
 - 또는 CLI: `gh workflow run digest.yml -f dry_run=true`.
 
+## MCP 서버 (호스트 Claude에서 on-demand 호출)
+
+배치(GHA cron → Slack)와 별개로, 호스트 Claude(Desktop·CLI)에서 직접
+다이제스트를 요청할 수 있는 stdio MCP 서버를 함께 제공한다.
+**서버는 수집·필터만 하고 요약·분류·점수는 호스트 Claude가 한다** — 그래서
+이 경로엔 별도 API 키가 필요 없다 (배치는 기존대로 Gemini로 직접 처리).
+
+도구 한 개: `get_ai_digest(category=None, top_k=3, hours=24) -> str`
+
+| 인자 | 값 | 기본 |
+|------|----|------|
+| `category` | `Model` / `Paper` / `Tool` / `Misc` / `Community` 또는 한국어 별칭 `모델` / `논문` / `툴` / `기타` / `커뮤니티`. 생략·`전체`·`all`·`""`은 전체. | `None` (전체) |
+| `top_k` | 카테고리당 상한 | `3` (1–25로 클램프) |
+| `hours` | 시간창(시간) | `24` (1–336으로 클램프) |
+
+### 설치
+
+```bash
+.venv/bin/pip install -e ".[mcp]"
+```
+
+### Claude Desktop 등록
+
+`claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/`)
+에 추가:
+
+```json
+{
+  "mcpServers": {
+    "ai-news-digest": {
+      "command": "/absolute/path/to/ai-news-digest/.venv/bin/python",
+      "args": ["-m", "ai_news_digest.mcp_server"]
+    }
+  }
+}
+```
+
+`env` 블록 없음 — 이 서버는 API 키가 필요 없다.
+
+### Claude CLI 등록
+
+```bash
+claude mcp add ai-news-digest -- \
+  /absolute/path/to/ai-news-digest/.venv/bin/python -m ai_news_digest.mcp_server
+```
+
+### 사용 예
+
+호스트 Claude와의 대화에서:
+
+> 최근 3일 논문만 10개 정리해줘
+
+→ Claude가 `get_ai_digest(category="논문", top_k=10, hours=72)` 호출
+→ 서버가 arXiv 항목을 수집·필터해서 `SYSTEM_PROMPT`와 함께 텍스트로 반환
+→ Claude가 그 기준대로 한국어 요약·카테고리 분류·중요도 점수를 매겨 응답.
+
 ## 환경변수 레퍼런스
 
 | 변수 | 기본값 | 설명 |
