@@ -1,7 +1,6 @@
 # ai-news-digest
 
-매일 아침 AI 관련 1차 소스를 자동으로 모아 Claude 또는 Gemini로 요약해 한국어 다이제스트로 보내주는 봇.
-서버 없이 GitHub Actions에서 돈다.
+AI 모델·논문·도구·커뮤니티 소식을 1차 소스에서 모아 LLM으로 한국어 요약하는 파이프라인. 서버 없이 GitHub Actions에서 자동 실행되고, MCP 서버로도 호출할 수 있다.
 
 - 🌵 **플러그인 구조** — 소스·LLM 제공자(Gemini↔Claude)·발송 채널을 인터페이스로 분리해, 한 줄 설정으로 교체.
 - 🧪 **자동 품질 평가** — LLM 요약을 규칙 기반 eval 하네스로 자동 채점(금지어·전문용어·제목 직역·길이), 매 발송마다 통과율을 함께 출력.
@@ -9,6 +8,8 @@
 
 설계 결정 근거는 [PLAN.md](./PLAN.md), 단계별 진행 상태와 후속 작업 목록은 [STATUS.md](./STATUS.md),
 에이전트·기여자용 규칙은 [AGENTS.md](./AGENTS.md) 참고.
+
+<br/>
 
 ## 동작 방식
 
@@ -31,6 +32,8 @@
 소스·LLM 제공자·발송 채널 전부 플러그인 구조다:
 `src/ai_news_digest/sources/registry.py` · `providers/{gemini,claude}.py` · `delivery/{console,slack,email_smtp}.py`.
 
+<br/>
+
 ## 품질 평가 (eval 하네스)
 
 LLM 요약이 "그럴듯하지만 나쁜" 출력으로 흐르지 않게, 발송 전 모든 요약을
@@ -49,6 +52,8 @@ LLM 요약이 "그럴듯하지만 나쁜" 출력으로 흐르지 않게, 발송 
 매 발송마다 통과율이 출력된다 (콘솔·Slack 공통, 예: `📊 요약 품질: 2/3 통과 (67%)`).
 통과율이 70% 미만이면 `⚠️ … 기준 70% 미달` 경고 줄로 바뀐다.
 
+<br/>
+
 ## MCP 서버 (호스트 Claude에서 on-demand 호출)
 
 배치(GHA cron → Slack)와 별개로, 호스트 Claude(Desktop·CLI)에서 직접
@@ -66,6 +71,8 @@ LLM 요약이 "그럴듯하지만 나쁜" 출력으로 흐르지 않게, 발송 
 | `top_k` | 카테고리당 상한 | `3` (1–25로 클램프) |
 | `hours` | 시간창(시간) | `24` (1–336으로 클램프) |
 
+<br/>
+
 ### 사용 예
 
 호스트 Claude와의 대화에서:
@@ -75,6 +82,8 @@ LLM 요약이 "그럴듯하지만 나쁜" 출력으로 흐르지 않게, 발송 
 → Claude가 `get_ai_digest(category="논문", top_k=10, hours=72)` 호출
 → 서버가 arXiv 항목을 수집·필터해서 `SYSTEM_PROMPT`와 함께 텍스트로 반환
 → Claude가 그 기준대로 한국어 요약·카테고리 분류·중요도 점수를 매겨 응답.
+
+<br/>
 
 ### Claude Desktop 등록
 
@@ -94,6 +103,8 @@ LLM 요약이 "그럴듯하지만 나쁜" 출력으로 흐르지 않게, 발송 
 
 `env` 블록 없음 — 이 서버는 API 키가 필요 없다.
 
+<br/>
+
 ### Claude CLI 등록
 
 ```bash
@@ -102,6 +113,8 @@ claude mcp add ai-news-digest -- \
 ```
 
 > 설치는 `.venv/bin/pip install -e ".[mcp]"` 한 번. (로컬 셋업은 아래 "빠른 시작" 참고.)
+
+<br/>
 
 ## Claude Code 플러그인 (원클릭 설치)
 
@@ -117,6 +130,8 @@ claude plugin install ai-news-digest
 서버를 자동 등록한다. `claude_desktop_config.json`이나 `claude mcp add`
 명령을 따로 만질 필요 없음.
 
+<br/>
+
 ### 요구 사항
 
 - **Python 3.12+** 이 시스템에 설치돼 있을 것 (`python3.12` / `python3` /
@@ -124,6 +139,8 @@ claude plugin install ai-news-digest
 - 인터넷 (첫 호출 시 한 번 `pip install --user`로 의존성 받음)
 - API 키 불필요 — 이 플러그인의 MCP 서버는 LLM을 직접 호출하지 않는다
   (수집·필터만 하고 요약은 호스트 Claude가 한다, "MCP 서버" 섹션 참고)
+
+<br/>
 
 ### 첫 호출 시 일어나는 일
 
@@ -136,11 +153,7 @@ claude plugin install ai-news-digest
 
 두 번째 호출부터는 1·3만. install은 한 번뿐.
 
-### 업데이트
-
-`claude plugin update`. marketplace의 `sha`가 `main` 추적이라
-다음 호출 때 최신 main 코드로 갈아치워짐 (editable install이라
-`pip install` 재실행 불필요, 코드 변경이 바로 반영).
+<br/>
 
 ## 빠른 시작 (로컬)
 
@@ -168,12 +181,16 @@ scripts/run_local.sh           # 기본 DRY_RUN=1 → 콘솔에 다이제스트 
 .venv/bin/pytest -m network               # 라이브 피드까지 검증 (선택, 가끔 flake)
 ```
 
+<br/>
+
 ## GitHub Actions로 매일 자동 실행
 
 이 저장소엔 두 워크플로가 들어 있다:
 
 - `.github/workflows/digest.yml` — 매일 한 번 다이제스트 실행.
 - `.github/workflows/ci.yml` — push/PR마다 `pytest -q` + gitleaks 시크릿 스캔.
+
+<br/>
 
 ### Secrets 설정
 
@@ -188,6 +205,8 @@ GitHub repo → **Settings → Secrets and variables → Actions → New reposit
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `MAIL_TO` | 이메일 발송 시 | 사용하는 SMTP 서버 |
 
 기본 안전 경로(`DRY_RUN=true`, 콘솔만)에서는 `GEMINI_API_KEY`만 있으면 충분하다.
+
+<br/>
 
 ### 스케줄 변경
 
@@ -209,10 +228,14 @@ on:
 > 이 봇은 `WINDOW_HOURS=26`으로 2시간 오버랩을 둬서 그 정도 지터는 흡수하지만,
 > 하루를 통째로 건너뛴 경우의 항목 손실까진 보호하지 않는다.
 
+<br/>
+
 ### 수동 실행
 
 - GitHub UI → **Actions → digest → Run workflow** → `dry_run` 토글.
 - 또는 CLI: `gh workflow run digest.yml -f dry_run=true`.
+
+<br/>
 
 ## 환경변수 레퍼런스
 
@@ -228,6 +251,8 @@ on:
 | `SLACK_WEBHOOK_URL` | — | DELIVERY=slack |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `MAIL_TO` | — | DELIVERY=email |
 
+<br/>
+
 ## 현재 한계 / 후속 개선
 
 - **발송 채널**: 콘솔·Slack 모두 실 발송 동작. Email은 `SMTPConfig` 검증까지 작성된 스캐폴드 상태로,
@@ -240,6 +265,8 @@ on:
   `pytest -m network`에선 가끔 깨지는 알려진 flake.
 
 전체 후속 항목은 [STATUS.md "다음에 개선"](./STATUS.md) 참고.
+
+<br/>
 
 ## 개발 방식
 
