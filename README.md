@@ -12,10 +12,10 @@
 수집 → 정규화 → AI 가공 → 발송
 ```
 
-1. **수집** — RSS 9개 + arXiv 3개 카테고리(cs.AI/CL/LG) = 총 **12개 피드**를 병렬 fetch.
+1. **수집** — RSS 9개 + arXiv 3개 카테고리(cs.AI/CL/LG) + Hacker News(Algolia) = 총 **13개 소스**를 병렬 fetch.
    소스별 격리되어 한 곳이 죽어도 나머지는 진행.
 2. **정규화** — 26시간(설정 가능) 내 항목만 통과시키고, HTML/공백 정리.
-3. **AI 가공** — 중복 묶기 / 카테고리 4종(모델출시·논문·툴·기타) 분류 / 0–10 중요도 / 카테고리당 상위 3개 / 한 줄 한국어 요약.
+3. **AI 가공** — 카테고리 5종(Model/Paper/Tool/Misc/Community) 분류 / 0–10 중요도 / 카테고리당 상위 3개 / 한 줄 한국어 요약.
    토큰 한도 넘으면 입력을 절반으로 나눠 호출 후 머지. 모델 호출 실패 2회면 원본 링크 덤프 폴백.
 4. **발송** — 콘솔(완전 동작, 기본) · Slack webhook · SMTP 이메일.
 
@@ -43,7 +43,7 @@ scripts/run_local.sh           # 기본 DRY_RUN=1 → 콘솔에 다이제스트 
 부수 명령:
 
 ```bash
-.venv/bin/python scripts/check_feeds.py   # 12개 피드 생존 점검
+.venv/bin/python scripts/check_feeds.py   # 13개 소스 생존 점검
 .venv/bin/pytest -q                       # 단위테스트 (네트워크 호출 없음)
 .venv/bin/pytest -m network               # 라이브 피드까지 검증 (선택, 가끔 flake)
 ```
@@ -166,7 +166,7 @@ claude mcp add ai-news-digest -- \
 
 ## 현재 한계 / 후속 개선
 
-- **발송 채널**: 콘솔만 완전 동작. Slack/Email은 인터페이스·생성자 검증까지 작성된 스캐폴드 상태로,
+- **발송 채널**: 콘솔·Slack 모두 실 발송 동작. Email은 `SMTPConfig` 검증까지 작성된 스캐폴드 상태로,
   `send()` 호출 시 `NotImplementedError`. 활성화는 후속 작업.
 - **Gemini latency**: 기본 모델 `gemini-2.5-flash`는 thinking 활성화로 한 호출에 1~3분 걸린다.
   더 빨리 돌리려면 `LLM_MODEL=gemini-2.5-flash-lite`.
