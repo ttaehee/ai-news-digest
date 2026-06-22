@@ -12,7 +12,7 @@
 수집 → 정규화 → AI 가공 → 발송
 ```
 
-1. **수집** — RSS 9개 + arXiv 3개 카테고리(cs.AI/CL/LG) + Hacker News(Algolia) = 총 **13개 소스**를 병렬 fetch.
+1. **수집** — RSS 9개 + arXiv 3개 카테고리(cs.AI/CL/LG) + Hacker News(Algolia) + GeekNews(news.hada.io) = 총 **14개 소스**를 병렬 fetch.
    소스별 격리되어 한 곳이 죽어도 나머지는 진행.
 2. **정규화** — 26시간(설정 가능) 내 항목만 통과시키고, HTML/공백 정리.
 3. **AI 가공** — 카테고리 5종(Model/Paper/Tool/Misc/Community) 분류 / 0–10 중요도 / 카테고리당 상위 3개 / 한 줄 한국어 요약.
@@ -43,7 +43,7 @@ scripts/run_local.sh           # 기본 DRY_RUN=1 → 콘솔에 다이제스트 
 부수 명령:
 
 ```bash
-.venv/bin/python scripts/check_feeds.py   # 13개 소스 생존 점검
+.venv/bin/python scripts/check_feeds.py   # 14개 소스 생존 점검
 .venv/bin/pytest -q                       # 단위테스트 (네트워크 호출 없음)
 .venv/bin/pytest -m network               # 라이브 피드까지 검증 (선택, 가끔 flake)
 ```
