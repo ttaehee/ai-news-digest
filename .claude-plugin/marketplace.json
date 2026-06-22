@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "ttaehee-marketplace",
+  "owner": {
+    "name": "ttaehee",
+    "email": "ttaehee1105@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "ai-news-digest",
+      "description": "AI news aggregator + summarizer MCP server. Collects 14 primary sources (OpenAI/DeepMind/arXiv/HN/GeekNews etc.), filters by time window and category, returns items plus SYSTEM_PROMPT for the host Claude to summarize. No API keys required for the MCP path.",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/ttaehee/ai-news-digest.git",
+        "sha": "main"
+      },
+      "version": "1.0.0",
+      "category": "productivity"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "ai-news-digest",
+  "description": "AI news digest MCP server. Tool: get_ai_digest(category, top_k, hours, refine). Collects items + bundles SYSTEM_PROMPT; host Claude summarizes.",
+  "version": "1.0.0",
+  "author": {
+    "name": "ttaehee"
+  },
+  "homepage": "https://github.com/ttaehee/ai-news-digest",
+  "mcpServers": {
+    "ai-news-digest": {
+      "command": "bash",
+      "args": ["bin/start-mcp.sh"]
+    }
+  }
+}
