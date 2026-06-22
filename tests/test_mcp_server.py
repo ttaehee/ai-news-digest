@@ -212,3 +212,37 @@ def test_render_payload_uses_iso_timestamp():
         [_item()], category=None, top_k=3, hours=24, failed_sources=[]
     )
     assert NOW.isoformat() in text
+
+
+def test_render_payload_includes_refine_block_when_true():
+    text = _render_payload(
+        [_item()],
+        category=None,
+        top_k=3,
+        hours=24,
+        failed_sources=[],
+        refine=True,
+    )
+    assert "# 자가 개선 (refine)" in text
+    # references the SYSTEM_PROMPT rules by topic instead of copy-pasting
+    for keyword in ("금지어", "전문용어", "제목 번역", "길이"):
+        assert keyword in text
+
+
+def test_render_payload_omits_refine_block_when_false():
+    text = _render_payload(
+        [_item()],
+        category=None,
+        top_k=3,
+        hours=24,
+        failed_sources=[],
+        refine=False,
+    )
+    assert "자가 개선" not in text
+
+
+def test_render_payload_refine_defaults_to_false():
+    text = _render_payload(
+        [_item()], category=None, top_k=3, hours=24, failed_sources=[]
+    )
+    assert "자가 개선" not in text

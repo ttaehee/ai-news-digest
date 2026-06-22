@@ -103,6 +103,7 @@ def _render_payload(
     top_k: int,
     hours: int,
     failed_sources: list[str],
+    refine: bool = False,
 ) -> str:
     """Compose the instruction + SYSTEM_PROMPT + items into one string."""
     cat_label = category or "전체"
@@ -141,6 +142,15 @@ def _render_payload(
         if item.raw_text:
             parts.append(f"raw_text: {item.raw_text}")
 
+    if refine:
+        parts.append("")
+        parts.append("# 자가 개선 (refine)")
+        parts.append(
+            "요약을 작성한 뒤, 위 SYSTEM_PROMPT의 summary_kr 규칙과 같은 기준"
+            "(금지어·전문용어·제목 번역·길이)으로 스스로 채점하라. 미달 항목은"
+            " 재작성하고, 최종 결과만 반환한다."
+        )
+
     return "\n".join(parts)
 
 
@@ -152,6 +162,7 @@ def get_ai_digest(
     category: str | None = None,
     top_k: int = 3,
     hours: int = 24,
+    refine: bool = False,
 ) -> str:
     """Collect AI news items, filter by time window and category, and return
     a single text payload the host LLM can summarize.
@@ -167,6 +178,11 @@ def get_ai_digest(
         top_k: Items per category the host should keep (clamped to 1–25,
             default 3). The host enforces this against SYSTEM_PROMPT.
         hours: Time window in hours (clamped to 1–336, default 24).
+        refine: When True, append a self-improvement instruction telling the
+            host to re-score its summaries against the SYSTEM_PROMPT rules
+            (banned words, jargon, title translation, length) and rewrite
+            anything that fails. Default False to keep the host's output
+            tokens single-pass.
 
     Returns:
         A single string containing the host instruction, the embedded
@@ -193,6 +209,7 @@ def get_ai_digest(
         top_k=top_k,
         hours=hours,
         failed_sources=failed,
+        refine=refine,
     )
 
 
