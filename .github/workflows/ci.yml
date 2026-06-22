@@ -22,7 +22,9 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install dev deps
-        run: pip install -e ".[dev]"
+        # `mcp` extra is required because tests/test_mcp_server.py imports
+        # from ai_news_digest.mcp_server, which imports mcp.server.fastmcp.
+        run: pip install -e ".[dev,mcp]"
 
       - name: Run unit tests
         # Network-marked tests are deselected by pyproject's addopts.
