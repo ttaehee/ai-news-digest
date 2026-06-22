@@ -150,6 +150,45 @@ claude mcp add ai-news-digest -- \
 → 서버가 arXiv 항목을 수집·필터해서 `SYSTEM_PROMPT`와 함께 텍스트로 반환
 → Claude가 그 기준대로 한국어 요약·카테고리 분류·중요도 점수를 매겨 응답.
 
+## Claude Code 플러그인 (원클릭 설치)
+
+위 "Claude Desktop/CLI 등록" 절차를 직접 만지지 않고 Claude Code 플러그인
+시스템으로 한 줄에 설치할 수 있다.
+
+```bash
+claude plugin marketplace add ttaehee/ai-news-digest
+claude plugin install ai-news-digest
+```
+
+이때 Claude Code가 `.claude-plugin/{marketplace,plugin}.json`을 읽어 MCP
+서버를 자동 등록한다. `claude_desktop_config.json`이나 `claude mcp add`
+명령을 따로 만질 필요 없음.
+
+### 요구 사항
+
+- **Python 3.12+** 이 시스템에 설치돼 있을 것 (`python3.12` / `python3` /
+  `python` 중 하나로 PATH에 잡혀 있으면 됨)
+- 인터넷 (첫 호출 시 한 번 `pip install --user`로 의존성 받음)
+- API 키 불필요 — 이 플러그인의 MCP 서버는 LLM을 직접 호출하지 않는다
+  (수집·필터만 하고 요약은 호스트 Claude가 한다, "MCP 서버" 섹션 참고)
+
+### 첫 호출 시 일어나는 일
+
+`bin/start-mcp.sh`이 launcher 역할로 다음을 한다:
+
+1. `python3.12 → python3 → python` 순으로 인터프리터 찾고 3.12+ 확인
+2. `ai_news_digest` 모듈 import 시도 → 실패하면 그 plugin 디렉터리에서
+   `pip install --user -e ".[mcp]"`를 한 번 자동 실행
+3. `python -m ai_news_digest.mcp_server` 로 stdio MCP 서버 exec
+
+두 번째 호출부터는 1·3만. install은 한 번뿐.
+
+### 업데이트
+
+`claude plugin update`. marketplace의 `sha`가 `main` 추적이라
+다음 호출 때 최신 main 코드로 갈아치워짐 (editable install이라
+`pip install` 재실행 불필요, 코드 변경이 바로 반영).
+
 ## 환경변수 레퍼런스
 
 | 변수 | 기본값 | 설명 |
