@@ -22,7 +22,7 @@ from .ai_processor import SYSTEM_PROMPT
 from .normalize import normalize
 from .pipeline import DEFAULT_FETCH_WORKERS, _collect
 from .sources.base import RawItem
-from .sources.registry import DEFAULT_SOURCES
+from .sources.registry import COMMUNITY_SOURCES, DEFAULT_SOURCES
 
 # Canonical category names match ai_processor.CATEGORIES exactly.
 _CANONICAL_CATEGORIES: frozenset[str] = frozenset(
@@ -76,23 +76,23 @@ def _filter_by_category(items: list[RawItem], category: str | None) -> list[RawI
     """Server-side coarse filter by ``source``. Host Claude does precise
     classification for Model/Tool/Misc because that needs body comprehension.
 
-    * Community → Hacker News only
+    * Community → any source in ``COMMUNITY_SOURCES`` (HN, GeekNews, …)
     * Paper → arXiv only (any cs.* category)
-    * Model / Tool / Misc → primary blogs only (drops HN and arXiv); the
-      host picks the right bucket per item based on body content
+    * Model / Tool / Misc → primary blogs only (drops community + arXiv);
+      the host picks the right bucket per item based on body content
     * None → pass everything through
     """
     if category is None:
         return items
     if category == "Community":
-        return [i for i in items if i.source == "Hacker News"]
+        return [i for i in items if i.source in COMMUNITY_SOURCES]
     if category == "Paper":
         return [i for i in items if i.source.startswith("arXiv")]
     # Model / Tool / Misc share the primary-blog pool.
     return [
         i
         for i in items
-        if i.source != "Hacker News" and not i.source.startswith("arXiv")
+        if i.source not in COMMUNITY_SOURCES and not i.source.startswith("arXiv")
     ]
 
 

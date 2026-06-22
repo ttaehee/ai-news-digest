@@ -118,20 +118,22 @@ def test_clamp_hours_in_range():
 # --- _filter_by_category ----------------------------------------------
 
 
-def test_filter_community_keeps_only_hn():
+def test_filter_community_includes_all_community_sources():
     items = [
         _item(source="OpenAI Blog"),
         _item(source="Hacker News"),
+        _item(source="GeekNews"),
         _item(source="arXiv cs.AI"),
     ]
     out = _filter_by_category(items, "Community")
-    assert [i.source for i in out] == ["Hacker News"]
+    assert sorted(i.source for i in out) == ["GeekNews", "Hacker News"]
 
 
 def test_filter_paper_keeps_only_arxiv():
     items = [
         _item(source="OpenAI Blog"),
         _item(source="Hacker News"),
+        _item(source="GeekNews"),
         _item(source="arXiv cs.AI"),
         _item(source="arXiv cs.CL"),
     ]
@@ -140,11 +142,12 @@ def test_filter_paper_keeps_only_arxiv():
 
 
 @pytest.mark.parametrize("category", ["Model", "Tool", "Misc"])
-def test_filter_model_tool_misc_drops_hn_and_arxiv(category):
+def test_filter_model_tool_misc_drops_community_and_arxiv(category):
     items = [
         _item(source="OpenAI Blog"),
         _item(source="Google DeepMind Blog"),
         _item(source="Hacker News"),
+        _item(source="GeekNews"),
         _item(source="arXiv cs.AI"),
     ]
     out = _filter_by_category(items, category)
@@ -152,8 +155,19 @@ def test_filter_model_tool_misc_drops_hn_and_arxiv(category):
 
 
 def test_filter_none_keeps_everything():
-    items = [_item(source="OpenAI Blog"), _item(source="Hacker News")]
+    items = [
+        _item(source="OpenAI Blog"),
+        _item(source="Hacker News"),
+        _item(source="GeekNews"),
+    ]
     assert _filter_by_category(items, None) == items
+
+
+def test_community_sources_includes_hn_and_geeknews():
+    # The whitelist is the single source of truth shared with SYSTEM_PROMPT.
+    from ai_news_digest.sources.registry import COMMUNITY_SOURCES
+    assert "Hacker News" in COMMUNITY_SOURCES
+    assert "GeekNews" in COMMUNITY_SOURCES
 
 
 # --- _render_payload --------------------------------------------------

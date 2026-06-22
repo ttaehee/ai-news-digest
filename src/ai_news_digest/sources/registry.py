@@ -24,4 +24,11 @@ DEFAULT_SOURCES: list[Source] = [
     ArxivSource("cs.CL"),
     ArxivSource("cs.LG"),
     HnSource(),
+    RSSSource("GeekNews",             "https://news.hada.io/rss/news"),
 ]
+
+# Source names whose items belong to the "Community" category — community
+# reaction / discussion feeds, not 1차 발표 channels. Single source of truth:
+# both ai_processor.SYSTEM_PROMPT (rule 4) and mcp_server._filter_by_category
+# import this so adding a future Reddit/Twitter source is a one-line change.
+COMMUNITY_SOURCES: frozenset[str] = frozenset({"Hacker News", "GeekNews"})

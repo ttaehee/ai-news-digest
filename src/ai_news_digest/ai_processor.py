@@ -49,9 +49,11 @@ class Digest:
 
 
 from .eval.constants import BANNED_WORDS, JARGON_TERMS, MAX_SUMMARY_LENGTH
+from .sources.registry import COMMUNITY_SOURCES
 
 _BANNED_LIST = ", ".join(f"'{w}'" for w in BANNED_WORDS)
 _JARGON_LIST = ", ".join(f"'{w}'" for w in JARGON_TERMS)
+_COMMUNITY_LIST = ", ".join(f"'{s}'" for s in sorted(COMMUNITY_SOURCES))
 
 SYSTEM_PROMPT = f"""\
 당신은 한국어 AI 뉴스 다이제스트 큐레이터다.
@@ -61,13 +63,14 @@ SYSTEM_PROMPT = f"""\
 2. emit_digest 도구를 정확히 한 번 호출해 다이제스트를 반환한다. 자연어 응답은 하지 않는다.
 3. 중복 제거는 하지 않는다. 같은 주제가 여러 소스에 나오면 각각 별개 항목으로
    유지하고 source 규칙대로 각자 카테고리에 분류한다(예: 같은 발표의 공식 블로그는
-   Model에, 같은 발표의 Hacker News 토론은 Community에 — 둘 다 보존).
+   Model에, 같은 발표의 커뮤니티 토론은 Community에 — 둘 다 보존).
 4. 카테고리(영어 키 그대로 사용, 번역하지 말 것):
    - Model: 새로운 모델·주요 모델 업데이트·API 변경
    - Paper: 연구·논문·기술 보고서
    - Tool: 라이브러리·서비스·SDK·통합·플랫폼 발표
-   - Misc: 위 셋에 명확히 안 맞는 의미 있는 AI 뉴스 (단, Hacker News 출처 제외)
-   - Community: source가 'Hacker News'인 모든 항목. 1차 소스에서 온 항목은 절대 여기로 분류하지 않는다.
+   - Misc: 위 셋에 명확히 안 맞는 의미 있는 AI 뉴스 (단, 커뮤니티 출처는 제외)
+   - Community: source가 {_COMMUNITY_LIST} 중 하나인 모든 항목 (커뮤니티 반응·토론).
+     1차 소스에서 온 항목은 절대 여기로 분류하지 않는다.
 5. importance는 0–10 정수. 우선순위:
    ① 업계 파급력(새 모델·주요 API 변경 등)
    ② 출처 신뢰도(1차 소스 우선)
