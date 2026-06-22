@@ -9,7 +9,7 @@
   "mcpServers": {
     "ai-news-digest": {
       "command": "bash",
-      "args": ["bin/start-mcp.sh"]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/bin/start-mcp.sh"]
     }
   }
 }
